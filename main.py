@@ -3,7 +3,7 @@ from pytube import YouTube
 import os
 
 # Replace 'YOUR_BOT_TOKEN' with your actual bot token
-API_TOKEN = 'YOUR_BOT_TOKEN'
+API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
 bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
