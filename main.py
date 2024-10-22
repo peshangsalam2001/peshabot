@@ -1,5 +1,3 @@
-Reminder Bot
-
 import telebot
 import threading
 import time
