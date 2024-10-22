@@ -1,5 +1,5 @@
 import telebot
-import youtube_dl
+import yt_dlp as youtube_dl
 import os
 
 API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
@@ -24,18 +24,20 @@ def handle_message(message):
         'outtmpl': 'downloads/%(title)s.%(ext)s',
     }
 
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=True)
-        video_title = info_dict.get('title', None)
-        video_filename = ydl.prepare_filename(info_dict)
-    
-    # Send the video to the user
-    video = open(video_filename, 'rb')
-    bot.send_video(message.chat.id, video)
-    video.close()
+    try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            video_title = info_dict.get('title', None)
+            video_filename = ydl.prepare_filename(info_dict)
+        
+        # Send the video to the user
+        with open(video_filename, 'rb') as video:
+            bot.send_video(message.chat.id, video)
 
-    # Clean up the downloaded file
-    os.remove(video_filename)
+        # Clean up the downloaded file
+        os.remove(video_filename)
+    except Exception as e:
+        bot.reply_to(message, f"An error occurred: {e}")
 
 # Start the bot polling
 bot.polling(none_stop=True)
