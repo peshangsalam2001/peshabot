@@ -3,4 +3,4 @@ telebot
 yt_dlp
 os
 pytube
-pafy
+youtube-dl
