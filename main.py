@@ -1,5 +1,3 @@
-Text to Speech (gtts)
-
 import telebot
 from gtts import gTTS
 import os
