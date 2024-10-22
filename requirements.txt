@@ -1,4 +1,5 @@
 pytelegrambotapi
+gtts
 telebot
 yt_dlp
 os
