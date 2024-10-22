@@ -24,7 +24,7 @@ def send_welcome(message):
 def handle_message(message):
     video_url = message.text
     if "http" in video_url:
-        bot.reply_to(message, "...تکایە چاوەڕوانبە لە چەند چرکەیەک داونلۆد ئەبێت")
+        bot.reply_to(message, "تکایە چاوەڕوانبە لە چەند چرکەیەک داونلۆد ئەبێت...")
         try:
             file_path = download_video(video_url)
             with open(file_path, 'rb') as video:
