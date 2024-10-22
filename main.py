@@ -1,48 +1,57 @@
 import telebot
-import threading
-import time
-from datetime import datetime
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+import random
 
-API_KEY = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
+API_KEY = 'YOUR_TELEGRAM_BOT_API_KEY'
 bot = telebot.TeleBot(API_KEY)
 
-reminders = []
+# Define trivia questions and answers in Kurdish Sorani
+quizzes = [
+    {
+        'question': 'کەی شاری ھەولێر پایتەخت بوو؟',
+        'options': ['١٩٢٠', '١٩٣٠', '١٩٤٠', '١٩٥٠'],
+        'answer': '١٩٣٠'
+    },
+    {
+        'question': 'بەرزی کوێستانی ھەورامان چەندە؟',
+        'options': ['٣٠٠٠م', '٢٤٠٠م', '٢٨٠٠م', '٣٢٠٠م'],
+        'answer': '٣٢٠٠م'
+    },
+    {
+        'question': 'بەچێشەکانی کورد لە کێدایە؟',
+        'options': ['کورۆن', 'دوپۆن', 'ھەمەکەی', 'بەرپشتی'],
+        'answer': 'دوپۆن'
+    }
+]
 
-def check_reminders():
-    while True:
-        now = datetime.now()
-        to_remove = []
-        for reminder in reminders:
-            if now >= reminder['time']:
-                bot.send_message(reminder['chat_id'], f"Reminder: {reminder['text']}")
-                to_remove.append(reminder)
-        for reminder in to_remove:
-            reminders.remove(reminder)
-        time.sleep(60)
+current_quiz = {}
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Welcome! Use /setreminder command to set a reminder. Format: /setreminder YYYY-MM-DD HH:MM Task")
+    bot.reply_to(message, "بەخێربێیت! بۆ دەستپێکردنی کویز /quiz بنووسە.")
 
-@bot.message_handler(commands=['setreminder'])
-def set_reminder(message):
-    try:
-        command = message.text.split(' ', 2)
-        if len(command) < 3:
-            raise ValueError("Invalid format")
-        
-        date_str, time_str, text = command[1], command[2], command[3]
-        reminder_time = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-        
-        reminders.append({
-            'chat_id': message.chat.id,
-            'time': reminder_time,
-            'text': text
-        })
-        
-        bot.reply_to(message, f"Reminder set for {reminder_time}")
-    except Exception as e:
-        bot.reply_to(message, f"Failed to set reminder. Use format: /setreminder YYYY-MM-DD HH:MM Task\nError: {e}")
+@bot.message_handler(commands=['quiz'])
+def send_quiz(message):
+    global current_quiz
+    quiz = random.choice(quizzes)
+    current_quiz[message.chat.id] = quiz
+    markup = InlineKeyboardMarkup()
+    for i, option in enumerate(quiz['options']):
+        markup.add(InlineKeyboardButton(text=option, callback_data=f"{i}"))
+    bot.send_message(message.chat.id, quiz['question'], reply_markup=markup)
 
-threading.Thread(target=check_reminders, daemon=True).start()
+@bot.callback_query_handler(func=lambda call: True)
+def handle_query(call):
+    global current_quiz
+    quiz = current_quiz.get(call.message.chat.id)
+    if not quiz:
+        bot.send_message(call.message.chat.id, "تکایە یەکەم /quiz بنووسە بۆ دەستپێکردنی کویز.")
+        return
+
+    user_answer = int(call.data)
+    if quiz['options'][user_answer] == quiz['answer']:
+        bot.send_message(call.message.chat.id, "ئەمە ڕاستە! 🥳")
+    else:
+        bot.send_message(call.message.chat.id, f"ئەمە هەڵەیە. وەڵامی ڕاست: {quiz['answer']}")
+
 bot.polling()
