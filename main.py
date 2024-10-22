@@ -1,5 +1,5 @@
 import telebot
-from pytube import YouTube
+import pafy
 import os
 
 # Replace 'YOUR_BOT_TOKEN' with your actual bot token
@@ -14,15 +14,14 @@ def welcome(message):
 def download_video(message):
     url = message.text
     try:
-        yt = YouTube(url)
-        # Get the highest resolution stream (preferably Full HD)
-        video_stream = yt.streams.filter(res="1080p", file_extension='mp4').first() or yt.streams.get_highest_resolution()
+        video = pafy.new(url)
+        best_stream = video.getbest()
 
-        if not video_stream:
-            bot.send_message(message.chat.id, "Sorry, no 1080p video stream found.")
+        if not best_stream:
+            bot.send_message(message.chat.id, "Sorry, no video stream found.")
             return
 
-        video_path = video_stream.download()
+        video_path = best_stream.download()
         
         # Send the video file to the user
         with open(video_path, 'rb') as video_file:
