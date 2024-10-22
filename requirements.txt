@@ -4,3 +4,4 @@ yt_dlp
 os
 pytube
 youtube-dl
+youtube_dl
