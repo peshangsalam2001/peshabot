@@ -18,21 +18,21 @@ def download_video(url):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Welcome to the Video Downloader Bot! Send me a video link from any supported platform to download.")
+    bot.reply_to(message, "بەخێربێن، لینکی ڤیدیۆکە بنێرە بۆ ئەوەی بحت داونلۆد بکەم لە کەمترین کات.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     video_url = message.text
     if "http" in video_url:
-        bot.reply_to(message, "Fetching the video, please wait...")
+        bot.reply_to(message, "تکایە چاوەڕوانبە لە چەند چرکەیەک داونلۆد ئەبێت")
         try:
             file_path = download_video(video_url)
             with open(file_path, 'rb') as video:
                 bot.send_video(message.chat.id, video)
             os.remove(file_path)  # Clean up the downloaded file
         except Exception as e:
-            bot.reply_to(message, f"Failed to fetch the video. Error: {str(e)}")
+            bot.reply_to(message, f"پڕۆسەکە سەرکەوتوو نەبوو Error: {str(e)}")
     else:
-        bot.reply_to(message, "Please send a valid video link.")
+        bot.reply_to(message, "تکایە لینکەکە بەدروستی بنێرە")
 
 bot.infinity_polling()
