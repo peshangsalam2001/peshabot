@@ -18,7 +18,7 @@ def download_video(url):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "بەخێربێن، لینکی ڤیدیۆکە بنێرە بۆ ئەوەی بحت داونلۆد بکەم لە کەمترین کات.")
+    bot.reply_to(message, "بەخێربێن، ئەم بۆتە یارمەتیت دەدات بۆ داونلۆدکردنی ڤیدیۆ لە هەر سۆشیاڵ میدیایەک، تکایە لینکی ڤیدیۆکە بنێرە بۆ ئەوەی بۆت داونلۆد بکەم بە کەمترین کات.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
