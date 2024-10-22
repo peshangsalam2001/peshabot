@@ -2,3 +2,4 @@ pytelegrambotapi
 telebot
 yt_dlp
 os
+pytube
