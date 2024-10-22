@@ -2,7 +2,7 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import random
 
-API_KEY = 'YOUR_TELEGRAM_BOT_API_KEY'
+API_KEY = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
 bot = telebot.TeleBot(API_KEY)
 
 # Define trivia questions and answers in Kurdish Sorani
