@@ -1,57 +1,58 @@
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import random
+import os
+from pydub import AudioSegment
+import speech_recognition as sr
 
-API_KEY = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
-bot = telebot.TeleBot(API_KEY)
+API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
+bot = telebot.TeleBot(API_TOKEN)
 
-# Define trivia questions and answers in Kurdish Sorani
-quizzes = [
-    {
-        'question': 'کەی شاری ھەولێر پایتەخت بوو؟',
-        'options': ['١٩٢٠', '١٩٣٠', '١٩٤٠', '١٩٥٠'],
-        'answer': '١٩٣٠'
-    },
-    {
-        'question': 'بەرزی کوێستانی ھەورامان چەندە؟',
-        'options': ['٣٠٠٠م', '٢٤٠٠م', '٢٨٠٠م', '٣٢٠٠م'],
-        'answer': '٣٢٠٠م'
-    },
-    {
-        'question': 'بەچێشەکانی کورد لە کێدایە؟',
-        'options': ['کورۆن', 'دوپۆن', 'ھەمەکەی', 'بەرپشتی'],
-        'answer': 'دوپۆن'
-    }
-]
+# Path to store audio files
+AUDIO_PATH = 'audio/'
+if not os.path.exists(AUDIO_PATH):
+    os.makedirs(AUDIO_PATH)
 
-current_quiz = {}
+# Initialize the recognizer
+recognizer = sr.Recognizer()
+
+@bot.message_handler(content_types=['voice'])
+def handle_voice(message):
+    try:
+        # Download the voice file
+        file_info = bot.get_file(message.voice.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        
+        # Save the voice file
+        audio_file = AUDIO_PATH + file_info.file_path.split('/')[-1] + '.ogg'
+        with open(audio_file, 'wb') as f:
+            f.write(downloaded_file)
+
+        # Convert OGG file to WAV
+        wav_file = audio_file.replace('.ogg', '.wav')
+        audio = AudioSegment.from_ogg(audio_file)
+        audio.export(wav_file, format='wav')
+
+        # Use SpeechRecognition to convert audio to text
+        with sr.AudioFile(wav_file) as source:
+            audio_data = recognizer.record(source)
+            text = recognizer.recognize_google(audio_data, language='ckb')
+        
+        # Send the text back to the user
+        bot.reply_to(message, text)
+        
+        # Clean up the audio files
+        os.remove(audio_file)
+        os.remove(wav_file)
+        
+    except Exception as e:
+        bot.reply_to(message, "Sorry, I couldn't process the audio.")
+        print(e)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "بەخێربێیت! بۆ دەستپێکردنی کویز /quiz بنووسە.")
+    bot.reply_to(message, "Welcome! Send me a voice message in Kurdish Sorani, and I will convert it to text.")
 
-@bot.message_handler(commands=['quiz'])
-def send_quiz(message):
-    global current_quiz
-    quiz = random.choice(quizzes)
-    current_quiz[message.chat.id] = quiz
-    markup = InlineKeyboardMarkup()
-    for i, option in enumerate(quiz['options']):
-        markup.add(InlineKeyboardButton(text=option, callback_data=f"{i}"))
-    bot.send_message(message.chat.id, quiz['question'], reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: True)
-def handle_query(call):
-    global current_quiz
-    quiz = current_quiz.get(call.message.chat.id)
-    if not quiz:
-        bot.send_message(call.message.chat.id, "تکایە یەکەم /quiz بنووسە بۆ دەستپێکردنی کویز.")
-        return
-
-    user_answer = int(call.data)
-    if quiz['options'][user_answer] == quiz['answer']:
-        bot.send_message(call.message.chat.id, "ئەمە ڕاستە! 🥳")
-    else:
-        bot.send_message(call.message.chat.id, f"ئەمە هەڵەیە. وەڵامی ڕاست: {quiz['answer']}")
+@bot.message_handler(commands=['help'])
+def send_help(message):
+    bot.reply_to(message, "Just send me a voice message in Kurdish Sorani, and I will convert it to text.")
 
 bot.polling()
