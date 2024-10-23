@@ -1,58 +1,50 @@
 import telebot
+import yt_dlp
 import os
-from pydub import AudioSegment
-import speech_recognition as sr
 
 API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
 bot = telebot.TeleBot(API_TOKEN)
 
-# Path to store audio files
-AUDIO_PATH = 'audio/'
-if not os.path.exists(AUDIO_PATH):
-    os.makedirs(AUDIO_PATH)
-
-# Initialize the recognizer
-recognizer = sr.Recognizer()
-
-@bot.message_handler(content_types=['voice'])
-def handle_voice(message):
-    try:
-        # Download the voice file
-        file_info = bot.get_file(message.voice.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        
-        # Save the voice file
-        audio_file = AUDIO_PATH + file_info.file_path.split('/')[-1] + '.ogg'
-        with open(audio_file, 'wb') as f:
-            f.write(downloaded_file)
-
-        # Convert OGG file to WAV
-        wav_file = audio_file.replace('.ogg', '.wav')
-        audio = AudioSegment.from_ogg(audio_file)
-        audio.export(wav_file, format='wav')
-
-        # Use SpeechRecognition to convert audio to text
-        with sr.AudioFile(wav_file) as source:
-            audio_data = recognizer.record(source)
-            text = recognizer.recognize_google(audio_data, language='ckb')
-        
-        # Send the text back to the user
-        bot.reply_to(message, text)
-        
-        # Clean up the audio files
-        os.remove(audio_file)
-        os.remove(wav_file)
-        
-    except Exception as e:
-        bot.reply_to(message, "Sorry, I couldn't process the audio.")
-        print(e)
+# Path to store downloaded videos
+VIDEO_PATH = 'videos/'
+if not os.path.exists(VIDEO_PATH):
+    os.makedirs(VIDEO_PATH)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Welcome! Send me a voice message in Kurdish Sorani, and I will convert it to text.")
+    bot.reply_to(message, "Welcome! Send me a Facebook Reel link, and I will download the video for you.")
 
 @bot.message_handler(commands=['help'])
 def send_help(message):
-    bot.reply_to(message, "Just send me a voice message in Kurdish Sorani, and I will convert it to text.")
+    bot.reply_to(message, "Just send me a Facebook Reel link, and I will download the video for you.")
+
+@bot.message_handler(func=lambda message: True)
+def download_facebook_reel(message):
+    url = message.text.strip()
+    if "facebook.com" not in url:
+        bot.reply_to(message, "Please send a valid Facebook Reel link.")
+        return
+    
+    bot.reply_to(message, "Downloading your video. Please wait...")
+    
+    try:
+        ydl_opts = {
+            'format': 'best',
+            'outtmpl': VIDEO_PATH + '%(title)s.%(ext)s',
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            video_title = ydl.prepare_filename(info_dict)
+
+        with open(video_title, 'rb') as video:
+            bot.send_video(message.chat.id, video)
+        
+        # Clean up the video file after sending
+        os.remove(video_title)
+        
+    except Exception as e:
+        bot.reply_to(message, "Sorry, I couldn't download the video.")
+        print(e)
 
 bot.polling()
