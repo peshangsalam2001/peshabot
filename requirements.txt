@@ -1,5 +1,6 @@
 pytelegrambotapi
 pytesseract
+gtts
 telebot
 requests
 yt_dlp
