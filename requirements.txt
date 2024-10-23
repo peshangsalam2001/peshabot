@@ -1,6 +1,7 @@
 pytelegrambotapi
 gtts
 telebot
+requests
 yt_dlp
 os
 pytube
