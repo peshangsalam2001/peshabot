@@ -2,6 +2,11 @@ pytelegrambotapi
 pytesseract
 gtts
 telebot
+googletrans
+Translator
+wikipediaapi
+wikipedia-api
+googletrans==4.0.0-rc1
 requests
 yt_dlp
 os
