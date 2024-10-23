@@ -1,50 +1,29 @@
 import telebot
-import yt_dlp
-import os
+import requests
 
 API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
+OWM_API_KEY = 'f2305d59493db9a74c3809126c607b56'
+
 bot = telebot.TeleBot(API_TOKEN)
 
-# Path to store downloaded videos
-VIDEO_PATH = 'videos/'
-if not os.path.exists(VIDEO_PATH):
-    os.makedirs(VIDEO_PATH)
-
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "Welcome! Send me a Facebook Reel link, and I will download the video for you.")
+    bot.reply_to(message, "Send me your location, and I'll provide the current weather update.")
 
-@bot.message_handler(commands=['help'])
-def send_help(message):
-    bot.reply_to(message, "Just send me a Facebook Reel link, and I will download the video for you.")
+@bot.message_handler(content_types=['location'])
+def handle_location(message):
+    lat, lon = message.location.latitude, message.location.longitude
+    weather = get_weather(lat, lon)
+    bot.reply_to(message, weather)
 
-@bot.message_handler(func=lambda message: True)
-def download_facebook_reel(message):
-    url = message.text.strip()
-    if "facebook.com" not in url:
-        bot.reply_to(message, "Please send a valid Facebook Reel link.")
-        return
-    
-    bot.reply_to(message, "Downloading your video. Please wait...")
-    
-    try:
-        ydl_opts = {
-            'format': 'best',
-            'outtmpl': VIDEO_PATH + '%(title)s.%(ext)s',
-        }
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=True)
-            video_title = ydl.prepare_filename(info_dict)
-
-        with open(video_title, 'rb') as video:
-            bot.send_video(message.chat.id, video)
-        
-        # Clean up the video file after sending
-        os.remove(video_title)
-        
-    except Exception as e:
-        bot.reply_to(message, "Sorry, I couldn't download the video.")
-        print(e)
+def get_weather(lat, lon):
+    url = f'http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&appid={OWM_API_KEY}'
+    response = requests.get(url).json()
+    if response.get('main'):
+        temp = response['main']['temp']
+        desc = response['weather'][0]['description']
+        return f"Current temperature: {temp}°C\nWeather: {desc.capitalize()}"
+    else:
+        return "Sorry, I couldn't fetch the weather data."
 
 bot.polling()
