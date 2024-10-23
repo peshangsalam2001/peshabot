@@ -21,3 +21,4 @@ PIL
 Image
 io
 BytesIO
+pytesseract
