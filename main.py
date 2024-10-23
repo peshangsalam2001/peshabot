@@ -48,4 +48,4 @@ def send_daily(message):
 
         last_sent[chat_id] = now
 
-bot.polling()
+bot.polling(none_stop=True)
