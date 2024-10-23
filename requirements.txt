@@ -16,4 +16,8 @@ InlineKeyboardButton
 random
 SpeechRecognition
 pydub
-SpeechRecognition pydub
+easyocr
+PIL
+Image
+io
+BytesIO
