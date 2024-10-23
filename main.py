@@ -1,5 +1,3 @@
-Workout Bot (Kurdish Vc)
-
 import telebot
 import random
 from datetime import datetime, timedelta
