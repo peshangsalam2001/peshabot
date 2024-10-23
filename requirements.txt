@@ -13,3 +13,6 @@ datetime
 InlineKeyboardMarkup
 InlineKeyboardButton
 random
+SpeechRecognition
+pydub
+SpeechRecognition pydub
