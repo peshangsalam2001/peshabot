@@ -1,29 +1,28 @@
 import telebot
+import easyocr
 import requests
+from io import BytesIO
+from PIL import Image
 
 API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
-OWM_API_KEY = 'f2305d59493db9a74c3809126c607b56'
 
 bot = telebot.TeleBot(API_TOKEN)
+reader = easyocr.Reader(['en', 'ckb', 'ar'])  # English, Kurdish Sorani, Arabic
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "Send me your location, and I'll provide the current weather update.")
+    bot.reply_to(message, "Send me an image, and I'll extract the text for you (supports English, Kurdish Sorani, and Arabic).")
 
-@bot.message_handler(content_types=['location'])
-def handle_location(message):
-    lat, lon = message.location.latitude, message.location.longitude
-    weather = get_weather(lat, lon)
-    bot.reply_to(message, weather)
+@bot.message_handler(content_types=['photo'])
+def handle_photo(message):
+    file_info = bot.get_file(message.photo[-1].file_id)
+    file = requests.get(f'https://api.telegram.org/file/bot{API_TOKEN}/{file_info.file_path}')
+    image = Image.open(BytesIO(file.content))
 
-def get_weather(lat, lon):
-    url = f'http://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&units=metric&appid={OWM_API_KEY}'
-    response = requests.get(url).json()
-    if response.get('main'):
-        temp = response['main']['temp']
-        desc = response['weather'][0]['description']
-        return f"Current temperature: {temp}°C\nWeather: {desc.capitalize()}"
-    else:
-        return "Sorry, I couldn't fetch the weather data."
+    # Extract text from the image
+    results = reader.readtext(BytesIO(file.content))
+    extracted_text = "\n".join([result[1] for result in results])
+
+    bot.reply_to(message, extracted_text)
 
 bot.polling()
