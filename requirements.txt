@@ -1,5 +1,5 @@
 pytelegrambotapi
-gtts
+pytesseract
 telebot
 requests
 yt_dlp
@@ -21,4 +21,3 @@ PIL
 Image
 io
 BytesIO
-pytesseract
