@@ -2,6 +2,8 @@ pytelegrambotapi
 pytesseract
 gtts
 telebot
+BeautifulSoup
+bs4
 facebook-scraper
 get_video_url
 FacebookScraper
