@@ -1,6 +1,5 @@
 import telebot
-import requests
-from facebook_scraper import get_video_url
+import youtube_dl
 
 API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
 bot = telebot.TeleBot(API_TOKEN)
@@ -13,10 +12,12 @@ def send_welcome(message):
 def download_facebook_video(message):
     try:
         url = message.text
-        video_url = get_video_url(url)
-        video_content = requests.get(video_url).content
-        with open('facebook_video.mp4', 'wb') as video_file:
-            video_file.write(video_content)
+        ydl_opts = {
+            'format': 'best',
+            'outtmpl': 'facebook_video.%(ext)s'
+        }
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
         with open('facebook_video.mp4', 'rb') as video:
             bot.send_video(message.chat.id, video)
     except Exception as e:
