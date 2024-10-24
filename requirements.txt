@@ -2,6 +2,8 @@ pytelegrambotapi
 pytesseract
 gtts
 telebot
+tubedl
+download
 BeautifulSoup
 bs4
 facebook-scraper
