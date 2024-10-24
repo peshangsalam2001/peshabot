@@ -3,6 +3,8 @@ pytesseract
 gtts
 telebot
 facebook-scraper
+get_video_url
+FacebookScraper
 googletrans
 Translator
 wikipediaapi
