@@ -2,6 +2,7 @@ pytelegrambotapi
 pytesseract
 gtts
 telebot
+facebook-scraper
 googletrans
 Translator
 wikipediaapi
