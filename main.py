@@ -1,32 +1,23 @@
 import telebot
-from videoget import VideoGet
+import requests
 
-# Replace 'YOUR_BOT_TOKEN' with your actual Telegram bot token
-BOT_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
-bot = telebot.TeleBot(BOT_TOKEN)
+bot_token = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
+bot = telebot.TeleBot(bot_token)
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Send me a YouTube URL to download the video.")
+def start(message):
+    bot.send_message(message.chat.id, "Send the Instagram video URL to download.")
 
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    url = message.text
-    try:
-        # Download the video using videoget
-        video = VideoGet(url)
-        video.download()
-        # Get the downloaded video file path
-        video_path = video.get_filepath()
+@bot.message_handler(func=lambda m: True)
+def download_video(message):
+    video_url = message.text
+    api_url = "https://snapvideo.io/api/ajaxSearch"  # Placeholder URL if SnapVideo provides a public API endpoint
+    response = requests.post(api_url, data={"url": video_url}).json()
 
-        # Send the video to the user
-        with open(video_path, 'rb') as video_file:
-            bot.send_video(message.chat.id, video_file)
-
-        # Optionally, delete the file after sending
-        import os
-        os.remove(video_path)
-    except Exception as e:
-        bot.reply_to(message, f"Failed to download video: {str(e)}")
+    download_link = response.get("download_link")  # Adjust based on actual API response structure
+    if download_link:
+        bot.send_message(message.chat.id, download_link)
+    else:
+        bot.send_message(message.chat.id, "Video not found or an error occurred.")
 
 bot.polling()
