@@ -1,6 +1,6 @@
 import os
 import telebot
-import subprocess
+import youtube_dl
 
 # Replace with your own API token
 API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
@@ -8,7 +8,7 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Welcome! Send me a YouTube link and I'll download the video for you.")
+    bot.reply_to(message, "Send me a YouTube link and I'll download the video for you.")
 
 @bot.message_handler(func=lambda message: True)
 def download_video(message):
@@ -16,16 +16,21 @@ def download_video(message):
     bot.reply_to(message, "Downloading video...")
 
     try:
-        # Define the output directory and file name
+        # Define the output directory and file name template
         output_dir = 'downloads'
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
         output_template = os.path.join(output_dir, '%(title)s.%(ext)s')
-        
-        # Using you-get to download the video
-        command = ['you-get', '-o', output_dir, video_url]
-        subprocess.run(command, check=True)
+
+        # Using youtube-dl to download the video
+        ydl_opts = {
+            'format': 'best',
+            'outtmpl': output_template
+        }
+
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([video_url])
 
         # Find the downloaded file (assuming it's the only file in the output directory)
         downloaded_files = os.listdir(output_dir)
