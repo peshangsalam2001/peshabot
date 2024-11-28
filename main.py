@@ -1,38 +1,31 @@
 import telebot
-import yt_dlp
 import requests
-import time
 
+# Replace with your own API token
 API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
-
 bot = telebot.TeleBot(API_TOKEN)
-
-def download_video(url):
-    ydl_opts = {
-        'format': 'best',
-        'outtmpl': '/tmp/%(title)s.%(ext)s',
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        result = ydl.download([url])
-        info_dict = ydl.extract_info(url, download=False)
-        video_title = info_dict.get('title', None)
-        video_filename = ydl.prepare_filename(info_dict)
-        return video_filename
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Send me a video URL from Facebook, TikTok, Instagram, or Snapchat, and I'll download it for you!")
+    bot.reply_to(message, "Welcome! Send me a YouTube link and I'll download the video for you.")
 
 @bot.message_handler(func=lambda message: True)
-def download_and_send_video(message):
-    url = message.text
-    try:
-        video_file = download_video(url)
-        with open(video_file, 'rb') as video:
-            bot.send_video(message.chat.id, video)
-        bot.send_message(message.chat.id, "Here is your video!")
-    except Exception as e:
-        bot.reply_to(message, "Sorry, I couldn't download the video. Please try again.")
-    time.sleep(5)  # Add a delay to prevent spamming
+def download_video(message):
+    video_url = message.text
+    bot.reply_to(message, "Downloading video...")
 
-bot.polling()
+    try:
+        # Using Safeform.net API to download the video
+        response = requests.get(f'https://safeform.net/api/video/download?url={video_url}')
+        response.raise_for_status()
+        
+        # Assuming the API returns a direct download link
+        download_link = response.json()['download_link']
+
+        # Sending the video file back to the user
+        bot.send_message(message.chat.id, "Here is your download link:")
+        bot.send_message(message.chat.id, download_link)
+    except Exception as e:
+        bot.reply_to(message, f"An error occurred: {e}")
+
+bot.infinity_polling()
