@@ -1,50 +1,38 @@
-import os
 import telebot
-import youtube_dl
+import yt_dlp
+import requests
+import time
 
-# Replace with your own API token
 API_TOKEN = '7686120166:AAGnrPNFIHvgXdlL3G9inlouM3f7p7VZfkY'
+
 bot = telebot.TeleBot(API_TOKEN)
+
+def download_video(url):
+    ydl_opts = {
+        'format': 'best',
+        'outtmpl': '/tmp/%(title)s.%(ext)s',
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        result = ydl.download([url])
+        info_dict = ydl.extract_info(url, download=False)
+        video_title = info_dict.get('title', None)
+        video_filename = ydl.prepare_filename(info_dict)
+        return video_filename
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Send me a YouTube link and I'll download the video for you.")
+    bot.reply_to(message, "Send me a video URL from Facebook, TikTok, Instagram, or Snapchat, and I'll download it for you!")
 
 @bot.message_handler(func=lambda message: True)
-def download_video(message):
-    video_url = message.text
-    bot.reply_to(message, "Downloading video...")
-
+def download_and_send_video(message):
+    url = message.text
     try:
-        # Define the output directory and file name template
-        output_dir = 'downloads'
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        
-        output_template = os.path.join(output_dir, '%(title)s.%(ext)s')
-
-        # Using youtube-dl to download the video
-        ydl_opts = {
-            'format': 'best',
-            'outtmpl': output_template
-        }
-
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([video_url])
-
-        # Find the downloaded file (assuming it's the only file in the output directory)
-        downloaded_files = os.listdir(output_dir)
-        if downloaded_files:
-            video_file_path = os.path.join(output_dir, downloaded_files[0])
-            with open(video_file_path, 'rb') as video_file:
-                bot.send_video(message.chat.id, video_file)
-
-            # Clean up by removing the downloaded file
-            os.remove(video_file_path)
-        else:
-            bot.reply_to(message, "Failed to find the downloaded video file.")
-
+        video_file = download_video(url)
+        with open(video_file, 'rb') as video:
+            bot.send_video(message.chat.id, video)
+        bot.send_message(message.chat.id, "Here is your video!")
     except Exception as e:
-        bot.reply_to(message, f"An error occurred: {e}")
+        bot.reply_to(message, "Sorry, I couldn't download the video. Please try again.")
+    time.sleep(5)  # Add a delay to prevent spamming
 
-bot.infinity_polling()
+bot.polling()
