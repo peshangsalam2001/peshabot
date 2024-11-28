@@ -1,5 +1,6 @@
 pytelegrambotapi
 keepvid
+KeepVid
 pytesseract
 gtts
 telebot
