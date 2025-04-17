@@ -1,36 +1,38 @@
-import os
 import telebot
-from tiktok_scraper import TikTokScraper
-from tiktok_scraper.utils import download_file
+import yt_dlp
+import requests
+import time
 
-BOT_TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'  # Replace with your Telegram bot token
+API_TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
 
-bot = telebot.TeleBot(BOT_TOKEN)
-scraper = TikTokScraper()
+bot = telebot.TeleBot(API_TOKEN)
+
+def download_video(url):
+    ydl_opts = {
+        'format': 'best',
+        'outtmpl': '/tmp/%(title)s.%(ext)s',
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        result = ydl.download([url])
+        info_dict = ydl.extract_info(url, download=False)
+        video_title = info_dict.get('title', None)
+        video_filename = ydl.prepare_filename(info_dict)
+        return video_filename
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Welcome to TikTok Downloader Bot! Send me a TikTok video link to download.")
+    bot.reply_to(message, "Send me a video URL from Facebook, TikTok, Instagram, or Snapchat, and I'll download it for you!")
 
 @bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    video_url = message.text
-    if "tiktok.com" in video_url:
-        bot.reply_to(message, "Fetching the video, please wait...")
-        try:
-            video_info = scraper.get_video_info(video_url)
-            video_download_url = video_info['video_url']
-            file_path = download_file(video_download_url, directory="downloads", filename="video.mp4")
-            with open(file_path, 'rb') as video:
-                bot.send_video(message.chat.id, video)
-            os.remove(file_path)  # Clean up the downloaded file
-        except Exception as e:
-            bot.reply_to(message, f"Failed to fetch the video. Error: {str(e)}")
-    else:
-        bot.reply_to(message, "Please send a valid TikTok video link.")
-
-bot.infinity_polling()
-    else:
-        bot.send_message(message.chat.id, "Please send a valid Instagram link.")
+def download_and_send_video(message):
+    url = message.text
+    try:
+        video_file = download_video(url)
+        with open(video_file, 'rb') as video:
+            bot.send_video(message.chat.id, video)
+        bot.send_message(message.chat.id, "Here is your video!")
+    except Exception as e:
+        bot.reply_to(message, "Sorry, I couldn't download the video. Please try again.")
+    time.sleep(5)  # Add a delay to prevent spamming
 
 bot.polling()
