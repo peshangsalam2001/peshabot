@@ -1,5 +1,1 @@
 telebot
-requests
-os
-time
-yt_dlp
