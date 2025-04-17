@@ -1,40 +1,35 @@
+import os
 import telebot
-import requests
+from tiktok_scraper import TikTokScraper
+from tiktok_scraper.utils import download_file
 
-BOT_TOKEN = "7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI"
+BOT_TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'  # Replace with your Telegram bot token
+
 bot = telebot.TeleBot(BOT_TOKEN)
-
-# Function to get download link from Instagram
-def download_instagram_video(insta_url):
-    try:
-        api_url = "https://saveig.app/api/ajaxSearch"
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-            "X-Requested-With": "XMLHttpRequest"
-        }
-        data = {"q": insta_url}
-        res = requests.post(api_url, headers=headers, data=data)
-
-        video_url = res.json()["data"][0]["url"]
-        return video_url
-    except Exception as e:
-        print("Error:", e)
-        return None
+scraper = TikTokScraper()
 
 @bot.message_handler(commands=['start'])
-def welcome(message):
-    bot.reply_to(message, "👋 Send me an Instagram post or reel link, and I'll download it for you!")
+def send_welcome(message):
+    bot.reply_to(message, "Welcome to TikTok Downloader Bot! Send me a TikTok video link to download.")
 
 @bot.message_handler(func=lambda message: True)
-def handle_links(message):
-    url = message.text
-    if "instagram.com" in url:
-        bot.send_message(message.chat.id, "⏳ Getting download link...")
-        video_url = download_instagram_video(url)
-        if video_url:
-            bot.send_video(message.chat.id, video=video_url)
-        else:
-            bot.send_message(message.chat.id, "❌ Failed to get video. Make sure the link is public.")
+def handle_message(message):
+    video_url = message.text
+    if "tiktok.com" in video_url:
+        bot.reply_to(message, "Fetching the video, please wait...")
+        try:
+            video_info = scraper.get_video_info(video_url)
+            video_download_url = video_info['video_url']
+            file_path = download_file(video_download_url, directory="downloads", filename="video.mp4")
+            with open(file_path, 'rb') as video:
+                bot.send_video(message.chat.id, video)
+            os.remove(file_path)  # Clean up the downloaded file
+        except Exception as e:
+            bot.reply_to(message, f"Failed to fetch the video. Error: {str(e)}")
+    else:
+        bot.reply_to(message, "Please send a valid TikTok video link.")
+
+bot.infinity_polling()
     else:
         bot.send_message(message.chat.id, "Please send a valid Instagram link.")
 
