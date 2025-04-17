@@ -1,2 +1,2 @@
 telebot
-PIL
+pip install pyTelegramBotAPI matplotlib
