@@ -1,28 +1,38 @@
 import telebot
-from TikTokApi import TikTokApi
+import requests
 
-bot = telebot.TeleBot("7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI")
+# Replace with your bot token
+BOT_TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
+bot = telebot.TeleBot(BOT_TOKEN)
+
+# Helper function to download TikTok video via API
+def download_tiktok_video(url):
+    try:
+        # Get video ID
+        video_id = requests.get(f"https://api.tikmate.app/api/lookup?url={url}").json().get("token")
+        if not video_id:
+            return None
+
+        # Get download link
+        response = requests.get(f"https://tikmate.online/api/redirect/{video_id}.mp4")
+        return response.url
+    except Exception as e:
+        print("Error:", e)
+        return None
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "سڵاو! لینکی TikTok بنێرە بۆ داونلۆدکردن.")
+def start(message):
+    bot.reply_to(message, "Send me a TikTok video link, and I'll download it for you!")
 
 @bot.message_handler(func=lambda message: True)
-def download_tiktok(message):
+def handle_message(message):
     url = message.text
-
-    try:
-        with TikTokApi() as api:
-            video = api.video(url=url)
-            video_data = video.bytes()
-
-        with open("video.mp4", "wb") as f:
-            f.write(video_data)
-
-        with open("video.mp4", "rb") as video:
-            bot.send_video(message.chat.id, video)
-
-    except Exception as e:
-        bot.reply_to(message, f"هەڵەیەک ڕوویدا:\n{e}")
-
-bot.polling()
+    if 'tiktok.com' in url:
+        bot.send_message(message.chat.id, "Downloading...")
+        video_link = download_tiktok_video(url)
+        if video_link:
+            bot.send_video(message.chat.id, video=video_link)
+        else:
+            bot.send_message(message.chat.id, "❌ Failed to download. Please try again.")
+    else:
+        bot.send
