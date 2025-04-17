@@ -8,7 +8,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "سڵاو بەڕێز پێشەنگ")
+    bot.reply_to(message, " How are you سڵاو بەڕێز پێشەنگ")
 
 bot.remove_webhook()
 
