@@ -1,4 +1,1 @@
 telebot
-matplotlib
-os
-json
