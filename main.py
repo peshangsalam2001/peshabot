@@ -1,48 +1,265 @@
 import telebot
-import colorsys
-import matplotlib.colors as mcolors
+from telebot import types
+import json
+import os
 
-BOT_TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
-bot = telebot.TeleBot(BOT_TOKEN)
+# بۆت تۆکنت لێرە دابنێ
+TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
 
-def hex_to_rgb(hex_color):
-    return mcolors.to_rgb(hex_color)
+# دروستکردنی بۆت
+bot = telebot.TeleBot(TOKEN)
 
-def rgb_to_hex(rgb):
-    return mcolors.to_hex(rgb)
+# فایلی کۆرسەکان
+COURSES_FILE = 'courses.json'
 
-def get_complementary_colors(color):
-    try:
-        rgb = hex_to_rgb(color)
-    except:
-        return None
+# ئەگەر فایلی کۆرسەکان بوونی نەبوو، دروستی بکە بە نموونەی سەرەتایی
+if not os.path.exists(COURSES_FILE):
+    default_courses = {
+        "categories": [
+            {
+                "id": 1,
+                "name": "پرۆگرامینگ",
+                "courses": [
+                    {
+                        "id": 101,
+                        "title": "فێربوونی پایثۆن",
+                        "description": "کۆرسێکی سەرەتایی بۆ فێربوونی زمانی پایثۆن",
+                        "price": "١٠٠،٠٠٠ دینار",
+                        "image_url": "https://example.com/python.jpg",
+                        "duration": "٨ هەفتە"
+                    },
+                    {
+                        "id": 102,
+                        "title": "جاڤاسکریپت",
+                        "description": "فێربوونی جاڤاسکریپت بۆ گەشەپێدانی وێب",
+                        "price": "١٢٠،٠٠٠ دینار",
+                        "image_url": "https://example.com/javascript.jpg",
+                        "duration": "١٠ هەفتە"
+                    }
+                ]
+            },
+            {
+                "id": 2,
+                "name": "زمان",
+                "courses": [
+                    {
+                        "id": 201,
+                        "title": "زمانی ئینگلیزی",
+                        "description": "کۆرسی پێشکەوتووی زمانی ئینگلیزی",
+                        "price": "٨٠،٠٠٠ دینار",
+                        "image_url": "https://example.com/english.jpg",
+                        "duration": "١٢ هەفتە"
+                    }
+                ]
+            }
+        ]
+    }
+    
+    with open(COURSES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(default_courses, f, ensure_ascii=False, indent=4)
 
-    # Convert RGB to HLS
-    h, l, s = colorsys.rgb_to_hls(*rgb)
+# خوێندنەوەی زانیاری کۆرسەکان
+def load_courses():
+    with open(COURSES_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
-    # Generate complementary and analogous colors
-    combos = []
-    for delta in [0.5, -0.08, 0.08, -0.16, 0.16]:  # Complementary + analogs
-        new_h = (h + delta) % 1.0
-        new_rgb = colorsys.hls_to_rgb(new_h, l, s)
-        combos.append(rgb_to_hex(new_rgb))
-    return combos
-
+# فەرمانی سەرەتا
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "🎨 Send me a color name (like `red`) or hex code (like `#1abc9c`) and I’ll suggest matching colors!")
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    
+    # دوگمەکانی سەرەکی
+    courses_btn = types.KeyboardButton("📚 کۆرسەکان")
+    about_btn = types.KeyboardButton("ℹ️ دەربارەی ئێمە")
+    contact_btn = types.KeyboardButton("📞 پەیوەندی")
+    register_btn = types.KeyboardButton("📝 تۆمارکردن")
+    
+    markup.add(courses_btn, about_btn, contact_btn, register_btn)
+    
+    bot.send_message(
+        message.chat.id,
+        f"سڵاو {message.from_user.first_name}! 👋\n\n"
+        "بەخێربێیت بۆ بۆتی کۆرسەکانمان.\n"
+        "دەتوانیت لێرەوە سەیری کۆرسەکانمان بکەیت و زانیاری وەربگریت.",
+        reply_markup=markup
+    )
 
-@bot.message_handler(func=lambda msg: True)
-def color_handler(message):
-    user_color = message.text.strip().lower()
-    colors = get_complementary_colors(user_color)
-
-    if colors:
-        reply = f"🌈 Color matches for `{user_color}`:\n\n"
-        for i, c in enumerate(colors):
-            reply += f"{i+1}. `{c}`\n"
-        bot.send_message(message.chat.id, reply, parse_mode="Markdown")
+# هەڵگرتنی داواکاریەکانی بەکارهێنەر
+@bot.message_handler(func=lambda message: True)
+def handle_all_messages(message):
+    if message.text == "📚 کۆرسەکان":
+        show_categories(message)
+    elif message.text == "ℹ️ دەربارەی ئێمە":
+        show_about(message)
+    elif message.text == "📞 پەیوەندی":
+        show_contact(message)
+    elif message.text == "📝 تۆمارکردن":
+        show_registration(message)
+    elif message.text == "🔙 گەڕانەوە بۆ سەرەتا":
+        send_welcome(message)
     else:
-        bot.send_message(message.chat.id, "⚠️ Please send a valid color name or hex code.")
+        # بەدواداچوون بکە بزانە ئایا بەکارهێنەر کرتەی لەسەر هیچ پۆلێنێک کردووە
+        courses_data = load_courses()
+        for category in courses_data["categories"]:
+            if message.text == f"🔍 {category['name']}":
+                show_courses_in_category(message, category)
+                return
+        
+        # بەدواداچوون بکە بزانە ئایا بەکارهێنەر کرتەی لەسەر هیچ کۆرسێک کردووە
+        for category in courses_data["categories"]:
+            for course in category["courses"]:
+                if message.text == f"📖 {course['title']}":
+                    show_course_details(message, course)
+                    return
+        
+        # ئەگەر پەیامەکە نەناسرایەوە
+        bot.reply_to(message, "ببورە، نەمتوانی تێبگەم.
+تکایە یەکێک لە بژاردەکان هەڵبژێرە.")
 
-bot.polling()
+# نیشاندانی پۆلێنەکان
+def show_categories(message):
+    courses_data = load_courses()
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    
+    buttons = []
+    for category in courses_data["categories"]:
+        buttons.append(types.KeyboardButton(f"🔍 {category['name']}"))
+    
+    buttons.append(types.KeyboardButton("🔙 گەڕانەوە بۆ سەرەتا"))
+    markup.add(*buttons)
+    
+    bot.send_message(
+        message.chat.id,
+        "تکایە پۆلێنێک هەڵبژێرە:",
+        reply_markup=markup
+    )
+
+# نیشاندانی کۆرسەکانی ناو پۆلێنێک
+def show_courses_in_category(message, category):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    
+    buttons = []
+    for course in category["courses"]:
+        buttons.append(types.KeyboardButton(f"📖 {course['title']}"))
+    
+    buttons.append(types.KeyboardButton("🔙 گەڕانەوە بۆ سەرەتا"))
+    markup.add(*buttons)
+    
+    bot.send_message(
+        message.chat.id,
+        f"کۆرسەکانی پۆلێنی {category['name']}:",
+        reply_markup=markup
+    )
+
+# نیشاندانی وردەکاری کۆرسێک
+def show_course_details(message, course):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    register_btn = types.KeyboardButton("📝 تۆمارکردن")
+    back_btn = types.KeyboardButton("🔙 گەڕانەوە بۆ سەرەتا")
+    markup.add(register_btn, back_btn)
+    
+    # ئامادەکردنی زانیاری کۆرس
+    course_info = f"*{course['title']}*\n\n"
+    course_info += f"📋 *شیکردنەوە:* {course['description']}\n"
+    course_info += f"💰 *نرخ:* {course['price']}\n"
+    course_info += f"⏱ *ماوە:* {course['duration']}\n"
+    
+    # ناردنی وێنەی کۆرس ئەگەر هەبوو
+    if 'image_url' in course and course['image_url']:
+        try:
+            bot.send_photo(
+                message.chat.id,
+                course['image_url'],
+                caption=course_info,
+                parse_mode='Markdown',
+                reply_markup=markup
+            )
+        except Exception as e:
+            # ئەگەر نەتوانرا وێنەکە بنێردرێت، تەنها تێکستەکە دەنێردرێت
+            bot.send_message(
+                message.chat.id,
+                course_info,
+                parse_mode='Markdown',
+                reply_markup=markup
+            )
+    else:
+        # ئەگەر وێنە نەبوو
+        bot.send_message(
+            message.chat.id,
+            course_info,
+            parse_mode='Markdown',
+            reply_markup=markup
+        )
+
+# نیشاندانی دەربارەی ئێمە
+def show_about(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    back_btn = types.KeyboardButton("🔙 گەڕانەوە بۆ سەرەتا")
+    markup.add(back_btn)
+    
+    about_text = (
+        "*دەربارەی ئێمە*\n\n"
+        "ئێمە خزمەتگوزاری فێرکاری پێشکەش دەکەین لە بوارە جیاوازەکاندا. "
+        "مامۆستایانی بە ئەزموون و پرۆگرامی تایبەت ئامادەکراون بۆ یارمەتیدانت "
+        "لە گەیشتن بە ئامانجەکانت.\n\n"
+        "تیمەکەمان بەردەوام کار لەسەر نوێکردنەوەی کۆرسەکان دەکات بۆ دڵنیابوون "
+        "لە پێشکەشکردنی باشترین ناوەڕۆک و مەنهەج."
+    )
+    
+    bot.send_message(
+        message.chat.id,
+        about_text,
+        parse_mode='Markdown',
+        reply_markup=markup
+    )
+
+# نیشاندانی پەیوەندی
+def show_contact(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    back_btn = types.KeyboardButton("🔙 گەڕانەوە بۆ سەرەتا")
+    markup.add(back_btn)
+    
+    contact_text = (
+        "*پەیوەندی کردن*\n\n"
+        "📱 *ژمارەی تەلەفۆن:* +964 750 123 4567\n"
+        "✉️ *ئیمەیل:* info@example.com\n"
+        "🌐 *ماڵپەڕ:* www.example.com\n"
+        "📍 *ناونیشان:* شەقامی سەرەکی، سلێمانی، هەرێمی کوردستان\n\n"
+        "کاتەکانی کارکردن:\n"
+        "شەممە - پێنجشەممە: ١٠:٠٠ - ١٧:٠٠"
+    )
+    
+    bot.send_message(
+        message.chat.id,
+        contact_text,
+        parse_mode='Markdown',
+        reply_markup=markup
+    )
+
+# نیشاندانی فۆرمی تۆمارکردن
+def show_registration(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    back_btn = types.KeyboardButton("🔙 گەڕانەوە بۆ سەرەتا")
+    markup.add(back_btn)
+registration_text = (
+        "*تۆمارکردن بۆ کۆرسەکان*\n\n"
+        "بۆ تۆمارکردن لە هەر کۆرسێک، تکایە ئەم زانیاریانە بنێرە بۆ ئیمەیلی register@example.com:\n\n"
+        "1️⃣ ناوی تەواو\n"
+        "2️⃣ ژمارەی تەلەفۆن\n"
+        "3️⃣ ئیمەیل\n"
+        "4️⃣ ناوی کۆرسی دڵخواز\n\n"
+        "یان پەیوەندی بکە بە ژمارەی: +964 750 123 4567\n\n"
+        "تیمەکەمان لە ماوەی 24 کاتژمێردا وەڵامت دەداتەوە."
+    )
+    
+    bot.send_message(
+        message.chat.id,
+        registration_text,
+        parse_mode='Markdown',
+        reply_markup=markup
+    )
+
+# دەستپێکردنی بۆت
+if name == "__main__":
+    print("بۆت دەستی پێکرد...")
+    bot.infinity_polling()
