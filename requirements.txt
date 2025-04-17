@@ -1,3 +1,5 @@
 telebot
 TikTokApi
 requests
+os
+tiktok_scraper
