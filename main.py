@@ -1,22 +1,26 @@
 import telebot
-from pytube import YouTube
+import requests
 
 bot = telebot.TeleBot("7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI")
 
 @bot.message_handler(commands=['start'])
 def start(msg):
-    bot.reply_to(msg, "🎬 Send me a YouTube link to download!")
+    bot.reply_to(msg, "🎵 Send me a TikTok video link to download!")
 
-@bot.message_handler(func=lambda m: "youtube.com" in m.text or "youtu.be" in m.text)
-def download(msg):
+@bot.message_handler(func=lambda m: "tiktok.com" in m.text)
+def download_tiktok(msg):
+    url = msg.text.strip()
+    api = f"https://tikwm.com/api/?url={url}"
     try:
-        yt = YouTube(msg.text)
-        stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').first()
-        bot.send_message(msg.chat.id, f"⬇️ Downloading: {yt.title}")
-        video = stream.download(filename='video.mp4')
-        with open("video.mp4", "rb") as v:
-            bot.send_video(msg.chat.id, v)
-    except Exception as e:
-        bot.send_message(msg.chat.id, f"❌ Error: {e}")
+        res = requests.get(api).json()
+        video_url = res['data']['play']
+        caption = res['data']['title']
+        video = requests.get(video_url)
+        with open("tiktok.mp4", "wb") as f:
+            f.write(video.content)
+        with open("tiktok.mp4", "rb") as f:
+            bot.send_video(msg.chat.id, f, caption=caption)
+    except:
+        bot.reply_to(msg, "❌ Failed to download. Make sure the link is correct and public.")
 
 bot.polling()
