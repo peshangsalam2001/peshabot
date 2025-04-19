@@ -1,39 +1,49 @@
 import telebot
-import requests
+import random
+import threading
 
-API_KEY = "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"
-TELEGRAM_BOT_TOKEN = "7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI"
+API_TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
+bot = telebot.TeleBot(API_TOKEN)
 
-bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
+# لیستی زانیاریەکانی Excel
+excel_tips = [
+    "Tip 1: Ctrl + Arrow Keys بۆ گواستنەوەی خێرا.",
+    "Tip 2: Alt + = بۆ کردنی کۆکردنەوە بەخێرایی.",
+    "Tip 3: بەکارهێنانی Conditional Formatting بۆ دیاریکردنی داتای گرنگ.",
+    "Tip 4: Freeze Panes بۆ ئەوەی سەرنیشانی خانەکان تەنیشتبن.",
+    "Tip 5: VLOOKUP بۆ گەڕان بەناوی خانەکان.",
+    "Tip 6: Pivot Tables بۆ چێکردنی راپۆرتەکانی خۆکار.",
+    "Tip 7: Flash Fill بۆ تەواوکردنی خانەکان بەخێرایی.",
+    "Tip 8: Ctrl + T بۆ گۆڕینی داتا بۆ Table.",
+    "Tip 9: IF formula بۆ دروستکردنی ئەندازیارە جیاوازەکان.",
+    "Tip 10: CONCATENATE بۆ تێکەڵکردنی نوسین لە خانەکان."
+]
 
-def ask_claude_via_openrouter(prompt):
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "HTTP-Referer": "https://your-app-name.com",  # دەتوانیت بگۆری بە ناوی سایتەکەت یان تۆمار نەکەیت
-        "Content-Type": "application/json"
-    }
+# Dictionary بۆ پاراستنی تیپە نێردراوەکان بۆ هەر بەکارهێنەر
+sent_tips = {}
 
-    data = {
-        "model": "anthropic/claude-3-opus",  # یان claude-3-sonnet بۆ خفیف‌تر
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
-    }
+# ناردنی زانیاری بە هەموو بەکارهێنەرەکان هەموو ١٢٠ چرکە
+def send_tip_every_two_minutes():
+    threading.Timer(120, send_tip_every_two_minutes).start()
 
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-    result = response.json()
-    return result["choices"][0]["message"]["content"]
+    for user_id in sent_tips:
+        remaining_tips = list(set(excel_tips) - set(sent_tips[user_id]))
 
-@bot.message_handler(func=lambda message: True)
-def handle_user_message(message):
-    user_prompt = message.text
-    bot.send_message(message.chat.id, "تکایە چاوەڕێ بکە... ڕاپۆرت لە Claude-3 دەنێرێت.")
+        if not remaining_tips:
+            bot.send_message(user_id, "تۆ هەموو زانیارییەکان وەرگرتووە. سوپاس!")
+            continue
 
-    try:
-        full_prompt = f"تکایە ڕاپۆرتێکی درێژ و تەکنیکی و جوان بنووسە بە زمانی کوردی سۆرانی لەسەر: {user_prompt}"
-        answer = ask_claude_via_openrouter(full_prompt)
-        bot.send_message(message.chat.id, answer)
-    except Exception as e:
-        bot.send_message(message.chat.id, f"هەڵەیەک ڕویدا: {e}")
+        tip = random.choice(remaining_tips)
+        sent_tips[user_id].append(tip)
+        bot.send_message(user_id, f"زانیاری نوێی Excel:\n\n{tip}")
 
-bot.polling()
+@bot.message_handler(commands=['start'])
+def start(message):
+    user_id = message.chat.id
+    if user_id not in sent_tips:
+        sent_tips[user_id] = []
+    bot.reply_to(message, "بەخێربێیت! هەر ٢ خۆڵەک جارێک (١٢٠ چرکە) زانیاری نوێی Excel وەردەگری.")
+
+# دەستپێکردنی تایمەر و بۆت
+send_tip_every_two_minutes()
+bot.infinity_polling()
