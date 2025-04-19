@@ -1,73 +1,39 @@
-from PIL import Image, ImageDraw, ImageFont
 import telebot
-import random
-import threading
-import os
+import requests
 
-API_TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
-bot = telebot.TeleBot(API_TOKEN)
+API_KEY = "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"
+TELEGRAM_BOT_TOKEN = "7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI"
 
-excel_tips = [
-    "Use Ctrl + Arrow Keys to move faster.",
-    "Alt + = for quick sum.",
-    "Use conditional formatting.",
-    "Freeze panes for visible headers.",
-    "VLOOKUP to find data.",
-    "Use Flash Fill.",
-    "Ctrl + T to make a Table.",
-    "Pivot Tables for summaries.",
-    "IF function for logic.",
-    "Use CONCATENATE or TEXTJOIN."
-]
+bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 
-sent_tips = {}
+def ask_claude_via_openrouter(prompt):
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "HTTP-Referer": "https://your-app-name.com",  # دەتوانیت بگۆری بە ناوی سایتەکەت یان تۆمار نەکەیت
+        "Content-Type": "application/json"
+    }
 
-# دروستکردنی وێنەیەکی جوان
-def create_image_from_text(tip_text, filename='tip.png'):
-    width, height = 1000, 600
-    img = Image.new('RGB', (width, height), color=(240, 250, 255))
-    draw = ImageDraw.Draw(img)
+    data = {
+        "model": "anthropic/claude-3-opus",  # یان claude-3-sonnet بۆ خفیف‌تر
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
 
-    # لۆگۆ
-    if os.path.exists("logo.png"):
-        logo = Image.open("logo.png").resize((100, 100))
-        img.paste(logo, (width - 120, 20))
+    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+    result = response.json()
+    return result["choices"][0]["message"]["content"]
 
-    # فۆنت
+@bot.message_handler(func=lambda message: True)
+def handle_user_message(message):
+    user_prompt = message.text
+    bot.send_message(message.chat.id, "تکایە چاوەڕێ بکە... ڕاپۆرت لە Claude-3 دەنێرێت.")
+
     try:
-        font = ImageFont.truetype("arial.ttf", 36)
-    except:
-        font = ImageFont.load_default()
+        full_prompt = f"تکایە ڕاپۆرتێکی درێژ و تەکنیکی و جوان بنووسە بە زمانی کوردی سۆرانی لەسەر: {user_prompt}"
+        answer = ask_claude_via_openrouter(full_prompt)
+        bot.send_message(message.chat.id, answer)
+    except Exception as e:
+        bot.send_message(message.chat.id, f"هەڵەیەک ڕویدا: {e}")
 
-    # ڕاستکردنەوەی نوسین بە ناوەڕاست
-    text_w, text_h = draw.textsize(tip_text, font=font)
-    x = (width - text_w) // 2
-    y = (height - text_h) // 2
-
-    draw.text((x, y), tip_text, font=font, fill=(20, 50, 70))
-    img.save(filename)
-    return filename
-
-# ناردنی تیپەکە بە شێوەی وێنە
-def send_tip_every_120_seconds():
-    threading.Timer(120, send_tip_every_120_seconds).start()
-
-    for user_id in sent_tips:
-        remaining = list(set(excel_tips) - set(sent_tips[user_id]))
-        if not remaining:
-            bot.send_message(user_id, "You've received all Excel tips. Thanks!")
-            continue
-        tip = random.choice(remaining)
-        sent_tips[user_id].append(tip)
-        image_path = create_image_from_text(tip)
-        bot.send_photo(user_id, photo=open(image_path, 'rb'))
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    user_id = message.chat.id
-    if user_id not in sent_tips:
-        sent_tips[user_id] = []
-    bot.reply_to(message, "Welcome! You'll receive a stylish Excel tip image every 2 minutes!")
-
-send_tip_every_120_seconds()
-bot.infinity_polling()
+bot.polling()
