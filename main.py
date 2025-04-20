@@ -17,7 +17,7 @@ def send_welcome(message):
 
     bot.send_photo(
         message.chat.id,
-        photo='https://example.com/image.jpg',  # گۆڕە بە لینکێکی وێنە
+        photo='https://imgur.com/a/2EDWQ0H',  # گۆڕە بە لینکێکی وێنە
         caption="تکایە جۆینی ئەم چەناڵە بکەن",
         reply_markup=markup
     )
