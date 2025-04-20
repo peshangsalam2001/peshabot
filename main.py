@@ -1,30 +1,14 @@
 import telebot
-import json
-import os
 
-# زانیاری بنەڕەتی
 TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
 CHANNEL_LINK = 'https://t.me/PeshangTestChannel'
-ADMIN_CHAT_ID = 1908245207  # IDی تۆ لێرە دانێ (دەتوانیت بە /start بۆتەکە لە دواتر چاپی بکەیت)
+ADMIN_CHAT_ID = 1908245207
 
 bot = telebot.TeleBot(TOKEN)
 
-# دروستکردنی فایلەکە ئەگەر بوونی نەبوو
-if not os.path.exists('data.json'):
-    with open('data.json', 'w') as file:
-        json.dump({"clicked_users": []}, file)
+# لیستی بەکارهێنەرانی کلیک‌کردو، لە یاداشتە ناوخۆیی
+clicked_users = set()
 
-# بارکردنی داتا
-def load_data():
-    with open('data.json', 'r') as file:
-        return json.load(file)
-
-# هەڵگرتنی نوێکردنەوە
-def save_data(data):
-    with open('data.json', 'w') as file:
-        json.dump(data, file)
-
-# فرمانی /start
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = telebot.types.InlineKeyboardMarkup()
@@ -33,30 +17,26 @@ def send_welcome(message):
 
     bot.send_photo(
         message.chat.id,
-        photo='https://example.com/image.jpg',  # لینکێکی وێنە لێرە دانێ
+        photo='https://example.com/image.jpg',  # گۆڕە بە لینکێکی وێنە
         caption="تکایە جۆینی ئەم چەناڵە بکەن",
         reply_markup=markup
     )
 
-    # نیشاندانی ID بۆ دۆزینەوە
+    # نیشاندانی ID بۆ تۆ
     bot.send_message(message.chat.id, f"IDی تۆ: {message.chat.id}")
 
-# هەڵسەنگاندنی کلیک
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback(call):
     if call.data == 'joined':
         user_id = call.from_user.id
-        data = load_data()
 
-        if user_id not in data['clicked_users']:
-            data['clicked_users'].append(user_id)
-            save_data(data)
+        if user_id not in clicked_users:
+            clicked_users.add(user_id)
 
-            total = len(data['clicked_users'])
-            if total == 2:  # لە 2 کلیک
+            if len(clicked_users) == 2:  # گەیشتن بە ٢ کلیک
                 bot.send_message(ADMIN_CHAT_ID, "پیرۆزە! ٢ بەکارهێنەر کلیکیان کرد و جۆینیان کردووە.")
         else:
             bot.answer_callback_query(call.id, "تۆ پێشتر کلیکت کردووە.")
 
-# دەستپێکردنی بۆتەکە
+# دەستپێکردنی بۆت
 bot.polling()
