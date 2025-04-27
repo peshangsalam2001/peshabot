@@ -153,7 +153,7 @@ def process_single_card(message):
             billing_result = setup_billing(email, recurly_token)
             bot.reply_to(message, f"Billing Setup Result: {billing_result}")
         else:
-            bot.reply_to(message, "Failed to obtain Recurly token. Card might be invalid.")
+            bot.reply_to(message, "Failed to create purchase")
 
     except ValueError:
         bot.reply_to(message, "Invalid input format. Please use: cc|mm|yy|cvv|email")
@@ -193,7 +193,7 @@ def process_multiple_cards(message):
                 billing_result = setup_billing(email, recurly_token)
                 results.append(f"Billing Setup Result for {email}: {billing_result}")
             else:
-                results.append(f"Failed to obtain Recurly token for card ending in {cc[-4:]}. Card might be invalid.")
+                results.append(f"Card ending in {cc[-4:]}: Failed to create purchase")
             time.sleep(5) # Be mindful of rate limiting
 
         except Exception as e:
