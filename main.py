@@ -190,9 +190,7 @@ def process_multiple_cards(message):
                 billing_result = setup_billing(email, recurly_token)
                 results.append(f"Billing Setup Result for {email}: {billing_result}")
             else:
-                results.append(f"Failed to obtain
-                
-                                results.append(f"Recurly token for card ending in {cc[-4:]} failed. Card might be invalid.")
+                results.append(f"Failed to obtain results.append(f"Recurly token for card ending in {cc[-4:]} failed. Card might be invalid.")
             time.sleep(5) # Be mindful of rate limiting
 
         except Exception as e:
