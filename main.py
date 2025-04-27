@@ -89,6 +89,9 @@ def get_recurly_token(cc, month, year, cvv, first_name="John", last_name="Doe", 
         logging.error(f"Error decoding Recurly token response: {response.text}")
         return None
 
+# --- Part 1 Ends Here ---
+# --- Part 2 Begins Here ---
+
 def setup_billing(email, payment_token):
     url = f"{KCM_BASE_URL}/industries/{INDUSTRY_ID}/setup-billing"
     payload = json.dumps({
@@ -190,7 +193,7 @@ def process_multiple_cards(message):
                 billing_result = setup_billing(email, recurly_token)
                 results.append(f"Billing Setup Result for {email}: {billing_result}")
             else:
-                results.append(f"Failed to obtain results.append(f"Recurly token for card ending in {cc[-4:]} failed. Card might be invalid.")
+                results.append(f"Failed to obtain Recurly token for card ending in {cc[-4:]}. Card might be invalid.")
             time.sleep(5) # Be mindful of rate limiting
 
         except Exception as e:
