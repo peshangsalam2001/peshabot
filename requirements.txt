@@ -1,5 +1,4 @@
 pyTelegramBotAPI
-telebot
 requests
-beautifulsoup4
-python-telegram-bot
+python-dotenv
+regex
