@@ -13,106 +13,122 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BOT_TOKEN = "8072279299:AAHAEodRhWpDb2g7EIVNFc3pk1Yg0YlpaPc"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Rocketshipit Specific Information
-ROCKETSHIPIT_BASE_URL = "https://www.rocketshipit.com"
+# Pet Notify Specific Information
+PETNOTIFY_BASE_URL = "https://app.petnotify.com"
 STRIPE_API_URL = "https://api.stripe.com/v1/tokens"
-PLAN_ID = "price_0OasfuftKVWrByuepaoLFVSB"  # From your example
-COUPON_CODE = ""  # You can modify this if needed
 
-# **CRITICAL: Replace with the ACTUAL Rocketshipit Stripe Publishable Key**
-STRIPE_PUBLIC_KEY = "pk_0BxZtv2UcRHjy0D3BO0jGVxdZKnqI"
-
-# Headers for Stripe API
-STRIPE_HEADERS = {
-    "Content-Type": "application/x-www-form-urlencoded",
-    "Accept": "application/json",
-    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/137.2  Mobile/15E148 Safari/605.1.15",
-    "Origin": "https://www.rocketshipit.com",
-}
-
-# Headers for Rocketshipit Trial Submission
-ROCKETSHIPIT_HEADERS = {
-    "Content-Type": "application/x-www-form-urlencoded",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Origin": "https://www.rocketshipit.com",
-    "Referer": "https://www.rocketshipit.com/trial",
-    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/137.2  Mobile/15E148 Safari/605.1.15",
-    "Sec-Fetch-Site": "same-origin",
-    "Sec-Fetch-Mode": "navigate",
-    "Sec-Fetch-Dest": "document",
+# Headers (Common ones, specific ones will be added in functions)
+COMMON_HEADERS = {
+    "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
     "Accept-Encoding": "gzip, deflate, br",
+    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/137.2  Mobile/15E148 Safari/605.1.15",
+    "Origin": "https://app.petnotify.com",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Dest": "empty",
+    "Connection": "keep-alive",
 }
 
-# Cookies (You MUST find the actual values from the website)
-ROCKETSHIPIT_COOKIES = {
-    "__stripe_mid": "5165694b-6b39-4b75-a3ad-d182d56d6cc3c3b40e",
-    "__stripe_sid": "09344d18-ca92-4776-933d-5d12292ff3da7a0f9a",
+# Cookies (These might need to be dynamic or obtained from a previous request)
+COOKIES = {
+    "mp_fae351686db2246b542400c5a3a2ee80_mixpanel": "%7B%22distinct_id%22%3A%20%22YOUR_DISTINCT_ID%22%2C%22%24device_id%22%3A%20%22YOUR_DEVICE_ID%22%2C%22%24initial_referrer%22%3A%20%22%24direct%22%2C%22%24initial_referring_domain%22%3A%20%22%24direct%22%7D",
+    "__stripe_mid": "YOUR_STRIPE_MID",
+    "__stripe_sid": "YOUR_STRIPE_SID",
+    "_ga_D2CSVFQZ27": "YOUR_GA_D2CSVFQZ27",
+    "_ga": "YOUR_GA",
+    "_gid": "YOUR_GID",
+    "tempToken": "YOUR_TEMP_TOKEN",
+    "_gat": "YOUR_GAT"
 }
 
-def generate_random_string(length=32):
-    characters = string.ascii_letters + string.digits
-    return ''.join(random.choice(characters) for _ in range(length))
+def update_cookies(response_cookies):
+    for cookie in response_cookies:
+        COOKIES[cookie.name] = cookie.value
 
-def generate_dynamic_email():
-    return f"testuser_{generate_random_string(8)}@example.com"
-
-def generate_dynamic_name():
-    return f"Test User {generate_random_string(5).capitalize()}"
-
-def create_stripe_token(cc, mm, yy, cvv, name, email, guid, muid, sid):
-    referrer = "https://www.rocketshipit.com/trial"
-    time_on_page = random.randint(5000, 60000)  # Simulate time on page (milliseconds)
-    payment_user_agent = "stripe.js/b85ba7b837; stripe-js-v3/b85ba7b837; card-element"
-    pasted_fields = "number"
-
-    payload = f"guid={guid}&muid={muid}&sid={sid}&referrer={referrer}&time_on_page={time_on_page}&card[number]={cc}&card[cvc]={cvv}&card[exp_month]={mm}&card[exp_year]={yy}&payment_user_agent={payment_user_agent}&pasted_fields={pasted_fields}&key={STRIPE_PUBLIC_KEY}"
-    headers = STRIPE_HEADERS.copy()
-    logging.info(f"Stripe Token Request URL: {STRIPE_API_URL}")
-    logging.info(f"Stripe Token Request Headers: {headers}")
-    logging.info(f"Stripe Token Request Payload: {payload}")
+def create_temp_user(first_name, last_name, email):
+    url = f"{PETNOTIFY_BASE_URL}/api/signup/temp-user"
+    headers = COMMON_HEADERS.copy()
+    headers["Content-Type"] = "application/json"
+    headers["Referer"] = "https://app.petnotify.com/signup/premium?plan=yearly"
+    payload = json.dumps({"data": {"sendNewsAndUpdates": True, "firstName": first_name, "lastName": last_name, "email": email, "confirmEmail": email, "promoCode": None, "plan": "year"}})
     try:
-        response = requests.post(STRIPE_API_URL, headers=headers, data=payload)
-        logging.info(f"Stripe Token Response Status Code: {response.status_code}")
-        logging.info(f"Stripe Token Response Headers: {response.headers}")
-        try:
-            response_json = response.json()
-            logging.info(f"Stripe Token Response JSON: {json.dumps(response_json)}")
-            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-            return response_json.get("id")
-        except json.JSONDecodeError:
-            logging.error(f"Error decoding Stripe token response: {response.text}")
-            return None
+        response = requests.post(url, headers=headers, data=payload, cookies=COOKIES)
+        response.raise_for_status()
+        update_cookies(response.cookies)
+        return response.json()
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error creating Stripe token: {e}")
+        logging.error(f"Error creating temp user: {e} - Response: {response.text}")
         return None
-    except json.JSONDecodeError:
-        logging.error(f"Error decoding Stripe token response (success case): {response.text}")
+
+def get_signup_breakdown():
+    url = f"{PETNOTIFY_BASE_URL}/api/signup/breakdown"
+    headers = COMMON_HEADERS.copy()
+    headers["Content-Type"] = "application/json"
+    headers["Referer"] = "https://app.petnotify.com/signup/premium/payment"
+    payload = json.dumps({"data": {"user": {"firstName": "Master", "lastName": "Lord", "email": "peshangsalam2001@gmail.com", "sendNewsAndUpdates": True}, "plan": "year", "intellitags": [{"size": "small", "maxCharacters": 12, "type": "Cat", "error": None, "weight": "50", "name": "Jack", "nameOnTag": "KURD", "nameTooLong": False}], "shippingAddress": {"country": "US", "state": "NJ", "address": "198 White Horse Pike", "city": "West Collingswood", "zip": "08107", "phone": "314-729-3729"}, "promoCode": None, "subscriptionPlan": "year"}})
+    try:
+        response = requests.post(url, headers=headers, data=payload, cookies=COOKIES)
+        response.raise_for_status()
+        update_cookies(response.cookies)
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error getting signup breakdown: {e} - Response: {response.text}")
+        return None
+
+def create_stripe_token(cc, mm, yy, cvv, name, email):
+    headers = COMMON_HEADERS.copy()
+    headers["Content-Type"] = "application/x-www-form-urlencoded"
+    headers["Origin"] = "https://js.stripe.com"
+    headers["Referer"] = "https://js.stripe.com/"
+    payload = f"card[number]={cc}&card[exp_month]={mm}&card[exp_year]={yy}&card[cvc]={cvv}&card[name]={name}&email={email}&key=YOUR_STRIPE_PUBLISHABLE_KEY" # **REPLACE WITH ACTUAL KEY**
+    try:
+        response = requests.post(STRIPE_API_URL, headers=headers, data=payload, cookies=COOKIES)
+        response.raise_for_status()
+        return response.json().get("id")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error creating Stripe token: {e} - Response: {response.text}")
         return None
 
 # --- Part 1 Ends Here ---
 # --- Part 2 Begins Here ---
 
-def submit_trial_form(stripe_token, name, email):
-    url = f"{ROCKETSHIPIT_BASE_URL}/trial"
-    payload = f"plan={PLAN_ID}&coupon={COUPON_CODE}&name={name}&email={email}&stripeToken={stripe_token}"
-    headers = ROCKETSHIPIT_HEADERS.copy()
-    headers["Content-Length"] = str(len(payload))
+def finalize_signup(stripe_token):
+    url = f"{PETNOTIFY_BASE_URL}/api/signup"
+    headers = COMMON_HEADERS.copy()
+    headers["Content-Type"] = "application/json"
+    headers["Referer"] = "https://app.petnotify.com/signup/premium/payment"
+    payload = json.dumps({"data": {"token": stripe_token, "promoCode": None, "redemptionCode": None, "isAnnualPlan": False, "stripeSubscriptionPlan": "price_1HLK1bBiYf8zs0JGiKROzUcG", "policyAcceptance": True, "smsPermission": True, "intellitags": [{"size": "small", "maxCharacters": 12, "type": "Cat", "error": None, "weight": "50", "name": "Jack", "nameOnTag": "KURD", "nameTooLong": False}], "shippingAddress": {"country": "US", "state": "NJ", "address": "198 White Horse Pike", "city": "West Collingswood", "zip": "08107", "phone": "314-729-3729"}}})
     try:
-        response = requests.post(url, headers=headers, data=payload, cookies=ROCKETSHIPIT_COOKIES, allow_redirects=True)
+        response = requests.post(url, headers=headers, data=payload, cookies=COOKIES)
         response.raise_for_status()
-        return response.text
+        return response.json()
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error submitting trial form: {e} - Response: {response.text}")
-        return f"Error submitting trial: {e}"
+        logging.error(f"Error finalizing signup: {e} - Response: {response.text}")
+        return None
 
 # Telegram Bot Handlers
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Welcome! Send me credit card details in the format: cc|mm|yy|cvv")
+    bot.reply_to(message, "Welcome! Let's sign up for Pet Notify. Please provide your first name, last name, and email (separated by spaces):")
+
+@bot.message_handler(func=lambda message: len(message.text.split()) == 3)
+def get_user_info(message):
+    first_name, last_name, email = message.text.split()
+    bot.reply_to(message, f"Creating temporary user for {email}...")
+    temp_user_data = create_temp_user(first_name, last_name, email)
+    if temp_user_data:
+        bot.reply_to(message, "Temporary user created. Now processing signup breakdown...")
+        breakdown_data = get_signup_breakdown()
+        if breakdown_data:
+            bot.reply_to(message, "Signup breakdown received. Please provide your credit card details in the format: cc|mm|yy|cvv")
+        else:
+            bot.reply_to(message, "Failed to get signup breakdown.")
+    else:
+        bot.reply_to(message, "Failed to create temporary user.")
 
 @bot.message_handler(func=lambda message: len(message.text.split('|')) == 4)
-def process_card(message):
+def process_payment_info(message):
     try:
         cc, mm_str, yy_str, cvv = message.text.split('|')
 
@@ -123,32 +139,27 @@ def process_card(message):
         mm = int(mm_str)
         yy = int(yy_str) if len(yy_str) == 4 else int(f"20{yy_str}")
 
-        bot.reply_to(message, "Processing card...")
-
-        dynamic_email = generate_dynamic_email()
-        dynamic_name = generate_dynamic_name()
-        guid = "44447146-f191-4882-b384-e3f5e0470d45e7609d"
-        muid = ROCKETSHIPIT_COOKIES.get("__stripe_mid", "")
-        sid = ROCKETSHIPIT_COOKIES.get("__stripe_sid", "")
-
-        stripe_token = create_stripe_token(cc, mm, yy, cvv, dynamic_name, dynamic_email, guid, muid, sid)
-
+        bot.reply_to(message, "Creating Stripe token...")
+        stripe_token = create_stripe_token(cc, mm, yy, cvv, "Master Lord", "peshangsalam2001@gmail.com") # Using static name/email from example
         if stripe_token:
-            bot.reply_to(message, f"Stripe Token created: {stripe_token}. Submitting trial...")
-            website_response = submit_trial_form(stripe_token, dynamic_name, dynamic_email)
-            bot.reply_to(message, f"Website Response:\n{website_response}")
+            bot.reply_to(message, f"Stripe Token created: {stripe_token}. Finalizing signup...")
+            signup_result = finalize_signup(stripe_token)
+            if signup_result:
+                bot.reply_to(message, f"Signup successful!\n{json.dumps(signup_result, indent=2)}")
+            else:
+                bot.reply_to(message, "Failed to finalize signup.")
         else:
             bot.reply_to(message, "Failed to create Stripe token. Card might be invalid.")
 
     except ValueError:
         bot.reply_to(message, "Invalid input format. Please use: cc|mm|yy|cvv")
     except Exception as e:
-        logging.error(f"Error processing card input: {e}")
+        logging.error(f"Error processing payment info: {e}")
         bot.reply_to(message, f"An error occurred: {e}")
 
 @bot.message_handler(func=lambda message: True)
 def echo_all(message):
-    bot.reply_to(message, "Send me credit card details in the format: cc|mm|yy|cvv")
+    bot.reply_to(message, "I can help you sign up for Pet Notify. Send /start to begin.")
 
 if __name__ == '__main__':
     logging.info("Bot started...")
