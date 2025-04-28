@@ -57,7 +57,7 @@ def generate_dynamic_email():
     return f"testuser_{generate_random_string(8)}@example.com"
 
 def generate_dynamic_name():
-    return f"Test User {generate_dynamic_string(5).capitalize()}"
+    return f"Test User {generate_random_string(5).capitalize()}"
 
 def create_stripe_token(cc, mm, yy, cvv, name, email):
     payload = f"card[number]={cc}&card[exp_month]={mm}&card[exp_year]={yy}&card[cvc]={cvv}&card[name]={name}&email={email}&key={STRIPE_PUBLIC_KEY}"
