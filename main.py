@@ -76,6 +76,9 @@ def create_setup_intent(page_id, stripe_publishable_key, stripe_account_id):
         "stripe_publishable_key": stripe_publishable_key,
         "stripe_account_id": stripe_account_id,
     })
+    print(f"Create Setup Intent URL: {url}")
+    print(f"Create Setup Intent Headers: {headers}")
+    print(f"Create Setup Intent Payload: {payload}")
     try:
         response = requests.post(url, headers=headers, data=payload, cookies=COOKIES)
         response.raise_for_status()
