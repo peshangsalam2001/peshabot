@@ -18,15 +18,15 @@ STRIPE_API_URL = "https://api.stripe.com/v1/tokens"
 PLAN_ID = "price_0OasfuftKVWrByuepaoLFVSB"  # From your example
 COUPON_CODE = ""  # You can modify this if needed
 
-# Stripe API Key (Likely a publishable key)
-STRIPE_PUBLIC_KEY = "YOUR_STRIPE_PUBLIC_KEY"  # Replace with Rocketshipit's Stripe Public Key
+# **CRITICAL: Replace with the ACTUAL Rocketshipit Stripe Publishable Key**
+STRIPE_PUBLIC_KEY = "YOUR_STRIPE_PUBLIC_KEY"
 
 # Headers for Stripe API
 STRIPE_HEADERS = {
     "Content-Type": "application/x-www-form-urlencoded",
     "Accept": "application/json",
     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/137.2  Mobile/15E148 Safari/605.1.15",
-    # You might need to add the 'Origin' header if Stripe requires it
+    "Origin": "https://www.rocketshipit.com",  # Added Origin header
 }
 
 # Headers for Rocketshipit Trial Submission
@@ -45,8 +45,8 @@ ROCKETSHIPIT_HEADERS = {
 
 # Cookies (You might need to make these dynamic or use a valid set)
 ROCKETSHIPIT_COOKIES = {
-    "__stripe_mid": "YOUR_STRIPE_MID",  # Replace with a valid Stripe mid
-    "__stripe_sid": "YOUR_STRIPE_SID",  # Replace with a valid Stripe sid
+    "__stripe_mid": "YOUR_STRIPE_MID",  # Replace with a valid Stripe mid if necessary
+    "__stripe_sid": "YOUR_STRIPE_SID",  # Replace with a valid Stripe sid if necessary
 }
 
 def generate_random_string(length=10):
@@ -57,7 +57,7 @@ def generate_dynamic_email():
     return f"testuser_{generate_random_string(8)}@example.com"
 
 def generate_dynamic_name():
-    return f"Test User {generate_random_string(5).capitalize()}"
+    return f"Test User {generate_dynamic_string(5).capitalize()}"
 
 def create_stripe_token(cc, mm, yy, cvv, name, email):
     payload = f"card[number]={cc}&card[exp_month]={mm}&card[exp_year]={yy}&card[cvc]={cvv}&card[name]={name}&email={email}&key={STRIPE_PUBLIC_KEY}"
@@ -66,7 +66,7 @@ def create_stripe_token(cc, mm, yy, cvv, name, email):
         response.raise_for_status()
         return response.json().get("id")
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error creating Stripe token: {e}")
+        logging.error(f"Error creating Stripe token: {e} - Response: {response.text}")
         return None
     except json.JSONDecodeError:
         logging.error(f"Error decoding Stripe token response: {response.text}")
@@ -85,7 +85,7 @@ def submit_trial_form(stripe_token, name, email):
         response.raise_for_status()
         return response.text
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error submitting trial form: {e}")
+        logging.error(f"Error submitting trial form: {e} - Response: {response.text}")
         return f"Error submitting trial: {e}"
 
 # Telegram Bot Handlers
