@@ -11,10 +11,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BOT_TOKEN = "8072279299:AAHAEodRhWpDb2g7EIVNFc3pk1Yg0YlpaPc"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Cinema Mastery Specific Information (HARDCODED - REPLACE WITH YOUR VALUES)
-PAGE_ID = "YOUR_PAGE_ID"
-STRIPE_PUBLISHABLE_KEY = "YOUR_STRIPE_PUBLISHABLE_KEY"
-STRIPE_ACCOUNT_ID = "YOUR_STRIPE_ACCOUNT_ID"
+# Cinema Mastery Specific Information (HARDCODED - VALUES PROVIDED BY YOU)
+PAGE_ID = "ZCtvdkFwV0ZBb2J1ZEpEOUw2YlRrQT09LS1tOFh1YXFEMWZlVEp5MGhPRnFRb2JnPT0=--06eb28a5479ac90f95675383388a8be1ecb4e0bc"
+STRIPE_PUBLISHABLE_KEY = "pk_live_51IksXdLsdufqQtEPrF9bXcJSrESLkgnbnfldl87Y1B20yq8lVkogGvYx5jpEduPg2CDuQ1E15IQzaaIRExFp0xkL001gqjnUZQ"
+STRIPE_ACCOUNT_ID = "acct_1IksXdLsdufqQtEP"
 CINEMAMASTERY_BASE_URL = "https://cinemamastery.com"
 STRIPE_API_URL = "https://api.stripe.com/v1"
 
