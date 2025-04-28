@@ -9,7 +9,7 @@ import string
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Replace with your actual Telegram Bot Token
-BOT_TOKEN = "8072279299:AAHAEodRhWpDb2g7EIVNFc3pk1Yg0YlpaPc"
+BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Rocketshipit Specific Information
@@ -61,15 +61,27 @@ def generate_dynamic_name():
 
 def create_stripe_token(cc, mm, yy, cvv, name, email):
     payload = f"card[number]={cc}&card[exp_month]={mm}&card[exp_year]={yy}&card[cvc]={cvv}&card[name]={name}&email={email}&key={STRIPE_PUBLIC_KEY}"
+    headers = STRIPE_HEADERS.copy()
+    logging.info(f"Stripe Token Request URL: {STRIPE_API_URL}")
+    logging.info(f"Stripe Token Request Headers: {headers}")
+    logging.info(f"Stripe Token Request Payload: {payload}")
     try:
-        response = requests.post(STRIPE_API_URL, headers=STRIPE_HEADERS, data=payload)
-        response.raise_for_status()
-        return response.json().get("id")
+        response = requests.post(STRIPE_API_URL, headers=headers, data=payload)
+        logging.info(f"Stripe Token Response Status Code: {response.status_code}")
+        logging.info(f"Stripe Token Response Headers: {response.headers}")
+        try:
+            response_json = response.json()
+            logging.info(f"Stripe Token Response JSON: {json.dumps(response_json)}")
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            return response_json.get("id")
+        except json.JSONDecodeError:
+            logging.error(f"Error decoding Stripe token response: {response.text}")
+            return None
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error creating Stripe token: {e} - Response: {response.text}")
+        logging.error(f"Error creating Stripe token: {e}")
         return None
     except json.JSONDecodeError:
-        logging.error(f"Error decoding Stripe token response: {response.text}")
+        logging.error(f"Error decoding Stripe token response (success case): {response.text}")
         return None
 
 # --- Part 1 Ends Here ---
