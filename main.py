@@ -46,8 +46,8 @@ ROCKETSHIPIT_HEADERS = {
 
 # Cookies (You MUST find the actual values from the website)
 ROCKETSHIPIT_COOKIES = {
-    "__stripe_mid": "YOUR_STRIPE_MID",
-    "__stripe_sid": "YOUR_STRIPE_SID",
+    "__stripe_mid": "5165694b-6b39-4b75-a3ad-d182d56d6cc3c3b40e",
+    "__stripe_sid": "09344d18-ca92-4776-933d-5d12292ff3da7a0f9a",
 }
 
 def generate_random_string(length=32):
@@ -61,7 +61,7 @@ def generate_dynamic_name():
     return f"Test User {generate_random_string(5).capitalize()}"
 
 def create_stripe_token(cc, mm, yy, cvv, name, email):
-    guid = generate_random_string(36).replace('-', '')  # Simulate GUID generation
+    guid = "44447146-f191-4882-b384-e3f5e0470d45e7609d"
     muid = ROCKETSHIPIT_COOKIES.get("__stripe_mid", "")
     sid = ROCKETSHIPIT_COOKIES.get("__stripe_sid", "")
     referrer = "https://www.rocketshipit.com/trial"
