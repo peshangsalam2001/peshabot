@@ -30,22 +30,6 @@ COMMON_HEADERS = {
     "Connection": "keep-alive",
 }
 
-# Cookies (These might need to be dynamic or obtained from a previous request)
-COOKIES = {
-    "mp_fae351686db2246b542400c5a3a2ee80_mixpanel": "%7B%22distinct_id%22%3A%20%22YOUR_DISTINCT_ID%22%2C%22%24device_id%22%3A%20%22YOUR_DEVICE_ID%22%2C%22%24initial_referrer%22%3A%20%22%24direct%22%2C%22%24initial_referring_domain%22%3A%20%22%24direct%22%7D",
-    "__stripe_mid": "YOUR_STRIPE_MID",
-    "__stripe_sid": "YOUR_STRIPE_SID",
-    "_ga_D2CSVFQZ27": "YOUR_GA_D2CSVFQZ27",
-    "_ga": "YOUR_GA",
-    "_gid": "YOUR_GID",
-    "tempToken": "YOUR_TEMP_TOKEN",
-    "_gat": "YOUR_GAT"
-}
-
-def update_cookies(response_cookies):
-    for cookie in response_cookies:
-        COOKIES[cookie.name] = cookie.value
-
 def create_temp_user(first_name, last_name, email):
     url = f"{PETNOTIFY_BASE_URL}/api/signup/temp-user"
     headers = COMMON_HEADERS.copy()
@@ -53,9 +37,8 @@ def create_temp_user(first_name, last_name, email):
     headers["Referer"] = "https://app.petnotify.com/signup/premium?plan=yearly"
     payload = json.dumps({"data": {"sendNewsAndUpdates": True, "firstName": first_name, "lastName": last_name, "email": email, "confirmEmail": email, "promoCode": None, "plan": "year"}})
     try:
-        response = requests.post(url, headers=headers, data=payload, cookies=COOKIES)
+        response = requests.post(url, headers=headers, data=payload)
         response.raise_for_status()
-        update_cookies(response.cookies)
         return response.json()
     except requests.exceptions.RequestException as e:
         logging.error(f"Error creating temp user: {e} - Response: {response.text}")
@@ -68,9 +51,8 @@ def get_signup_breakdown():
     headers["Referer"] = "https://app.petnotify.com/signup/premium/payment"
     payload = json.dumps({"data": {"user": {"firstName": "Master", "lastName": "Lord", "email": "peshangsalam2001@gmail.com", "sendNewsAndUpdates": True}, "plan": "year", "intellitags": [{"size": "small", "maxCharacters": 12, "type": "Cat", "error": None, "weight": "50", "name": "Jack", "nameOnTag": "KURD", "nameTooLong": False}], "shippingAddress": {"country": "US", "state": "NJ", "address": "198 White Horse Pike", "city": "West Collingswood", "zip": "08107", "phone": "314-729-3729"}, "promoCode": None, "subscriptionPlan": "year"}})
     try:
-        response = requests.post(url, headers=headers, data=payload, cookies=COOKIES)
+        response = requests.post(url, headers=headers, data=payload)
         response.raise_for_status()
-        update_cookies(response.cookies)
         return response.json()
     except requests.exceptions.RequestException as e:
         logging.error(f"Error getting signup breakdown: {e} - Response: {response.text}")
@@ -81,9 +63,9 @@ def create_stripe_token(cc, mm, yy, cvv, name, email):
     headers["Content-Type"] = "application/x-www-form-urlencoded"
     headers["Origin"] = "https://js.stripe.com"
     headers["Referer"] = "https://js.stripe.com/"
-    payload = f"card[number]={cc}&card[exp_month]={mm}&card[exp_year]={yy}&card[cvc]={cvv}&card[name]={name}&email={email}&key=YOUR_STRIPE_PUBLISHABLE_KEY" # **REPLACE WITH ACTUAL KEY**
+    payload = f"card[number]={cc}&card[exp_month]={mm}&card[exp_year]={yy}&card[cvc]={cvv}&card[name]={name}&email={email}&key=pk_live_51Jj45g2E5nO44xT2ex69s3j5hcc4v24K61lVn9sQ474m4W819079R5s95i85349612015"
     try:
-        response = requests.post(STRIPE_API_URL, headers=headers, data=payload, cookies=COOKIES)
+        response = requests.post(STRIPE_API_URL, headers=headers, data=payload)
         response.raise_for_status()
         return response.json().get("id")
     except requests.exceptions.RequestException as e:
@@ -100,7 +82,7 @@ def finalize_signup(stripe_token):
     headers["Referer"] = "https://app.petnotify.com/signup/premium/payment"
     payload = json.dumps({"data": {"token": stripe_token, "promoCode": None, "redemptionCode": None, "isAnnualPlan": False, "stripeSubscriptionPlan": "price_1HLK1bBiYf8zs0JGiKROzUcG", "policyAcceptance": True, "smsPermission": True, "intellitags": [{"size": "small", "maxCharacters": 12, "type": "Cat", "error": None, "weight": "50", "name": "Jack", "nameOnTag": "KURD", "nameTooLong": False}], "shippingAddress": {"country": "US", "state": "NJ", "address": "198 White Horse Pike", "city": "West Collingswood", "zip": "08107", "phone": "314-729-3729"}}})
     try:
-        response = requests.post(url, headers=headers, data=payload, cookies=COOKIES)
+        response = requests.post(url, headers=headers, data=payload)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -154,7 +136,7 @@ def process_payment_info(message):
     except ValueError:
         bot.reply_to(message, "Invalid input format. Please use: cc|mm|yy|cvv")
     except Exception as e:
-        logging.error(f"Error processing payment info: {e}")
+        logging.error(f"Error processing card input: {e}")
         bot.reply_to(message, f"An error occurred: {e}")
 
 @bot.message_handler(func=lambda message: True)
