@@ -17,6 +17,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 # Kajabi Specific Information
 KAJABI_BASE_URL = "https://app.kajabi.com"
 STRIPE_API_URL = "https://api.stripe.com/v1/payment_methods"
+SIGNUP_URL = "https://app.kajabi.com/signup/kajabi_pro_monthly?signup_source=spring_promo_2025&marketing_form_name=start_your_trial_form"
 
 # Headers (Common ones, specific ones will be added in functions)
 COMMON_HEADERS = {
@@ -40,7 +41,7 @@ KAJABI_HEADERS = {
     "origin": "https://app.kajabi.com",
     "sec-fetch-dest": "empty",
     "content-type": "application/json",
-    "referer": "https://app.kajabi.com/signup/kajabi_pro_monthly?signup_source=spring_promo_2025&marketing_form_name=start_your_trial_form",
+    "referer": SIGNUP_URL,
 }
 
 # Cookies
@@ -76,16 +77,17 @@ COOKIES = {
 }
 
 def get_signup_page():
-    url = f"{KAJABI_BASE_URL}/signup/kajabi_pro_monthly"
     headers = KAJABI_HEADERS.copy()
     headers.pop("content-type", None) # Not needed for GET request
     try:
-        response = requests.get(url, headers=headers, cookies=COOKIES)
+        response = requests.get(SIGNUP_URL, headers=headers, cookies=COOKIES, allow_redirects=True)
         response.raise_for_status()
-        return response.text, response.cookies
+        updated_cookies = requests.utils.dict_from_cookiejar(response.cookies)
+        COOKIES.update(updated_cookies)
+        return response.text
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error getting signup page: {e} - Response: {response.text}")
-        return None, None
+        logging.error(f"Error getting signup page: {e} - Response: {getattr(e.response, 'text', None)}")
+        return None
 
 def extract_csrf_token(html_content):
     match = re.search(r'<meta name="csrf-token" content="([^"]+)">', html_content)
@@ -102,7 +104,7 @@ def create_payment_method(cc, mm, yy, cvv, postal_code, guid):
         response.raise_for_status()
         return response.json().get("id")
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error creating payment method: {e} - Response: {response.text}")
+        logging.error(f"Error creating payment method: {e} - Response: {getattr(e.response, 'text', None)}")
         return None
 
 # --- Part 1 Ends Here ---
@@ -136,7 +138,7 @@ def submit_signup_form(payment_method_id, email, first_name, last_name, password
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error submitting signup form: {e} - Response: {response.text}")
+        logging.error(f"Error submitting signup form: {e} - Response: {getattr(e.response, 'text', None)}")
         return None
 
 # Telegram Bot Handlers
@@ -148,8 +150,8 @@ def send_welcome(message):
 def get_user_info(message):
     global signup_html_content, kajabi_cookies
     email, first_name, last_name, password = message.text.split()
-    bot.reply_to(message, "Fetching signup page to get CSRF token...")
-    signup_html_content, kajabi_cookies = get_signup_page()
+    bot.reply_to(message, "Fetching signup page to get CSRF token and initial cookies...")
+    signup_html_content = get_signup_page()
     if signup_html_content:
         csrf_token = extract_csrf_token(signup_html_content)
         if csrf_token:
