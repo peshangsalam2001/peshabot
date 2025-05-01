@@ -4,7 +4,7 @@ import random
 import string
 import re
 
-JETWEBINAR_BOT_TOKEN = "8072279299:AAF7-9MjDIYkoH6iuDztpbSmyQBvz3kRjG0"
+JETWEBINAR_BOT_TOKEN = "7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI"
 CHANNEL_ID = -1002170961342
 bot = telebot.TeleBot(JETWEBINAR_BOT_TOKEN)
 
