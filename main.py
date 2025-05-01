@@ -92,8 +92,12 @@ def card_handler(message):
 
         if "error" in resp_json:
             bot.reply_to(message, f"❌ Card Declined (JetWebinar):\n{resp_json.get('error', resp_json.get('message', 'Unknown error'))}")
+        elif resp_json.get("success") is True:
+            subscription_id = resp_json.get("subscriptionId", "N/A")
+            bot.reply_to(message, f"Your Card Was Added ✅\nSubscription ID: {subscription_id}")
         else:
-            bot.reply_to(message, "Your Card Was Added ✅")
+            # Any other unexpected response
+            bot.reply_to(message, f"Unexpected response:\n{resp_json}")
 
     except Exception as e:
         bot.reply_to(message, f"Error: {str(e)}")
