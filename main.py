@@ -6,7 +6,7 @@ import time
 import os
 from threading import Thread
 
-JETWEBINAR_BOT_TOKEN = "YOUR_JETWEBINAR_BOT_TOKEN"
+JETWEBINAR_BOT_TOKEN = "7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI"
 CHANNEL_ID = -1002170961342
 bot = telebot.TeleBot(JETWEBINAR_BOT_TOKEN)
 
