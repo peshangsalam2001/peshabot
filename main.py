@@ -29,7 +29,7 @@ def get_client_secret():
         "user-agent": "Mozilla/5.0"
     }
     payload = {
-        "email": "peshangsalam2001@gmail.com",
+        "email": "peshangsalam2002@gmail.com",
         "name": "John Doe",
         "phone": "3144740104",
         "url": "https://ykards.com/checkout/",
