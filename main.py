@@ -16,7 +16,6 @@ def generate_random_email():
     return f"{username}@gmail.com"
 
 def parse_card(card_text):
-    # Accepts CC|MM|YY|CVV or CC|MM|YYYY|CVV
     match = re.fullmatch(r"\s*(\d{12,19})\|(\d{1,2})\|(\d{2,4})\|(\d{3,4})\s*", card_text)
     if not match:
         return None
@@ -97,14 +96,18 @@ def check_card(cc, mm, yy, cvv, client_secret):
         message = result.get("error", {}).get("message", "")
         code = result.get("error", {}).get("code", "")
         decline_code = result.get("error", {}).get("decline_code", "")
+        country = result.get('payment_method', {}).get('card', {}).get('country', 'N/A')
+        
         if status == "succeeded" or status == "requires_action":
             return (f"✅ LIVE: {cc}|{mm}|{yy}|{cvv}\n"
                     f"Status: {status}\n"
+                    f"Country: {country}\n"
                     f"Code: {code}\n"
                     f"Message: {message}")
         else:
             return (f"❌ DEAD: {cc}|{mm}|{yy}|{cvv}\n"
                     f"Status: {status}\n"
+                    f"Country: {country}\n"
                     f"Decline Code: {decline_code}\n"
                     f"Code: {code}\n"
                     f"Message: {message}")
