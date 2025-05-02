@@ -4,7 +4,7 @@ import random
 import string
 import time
 
-BOT_TOKEN = "7018443911:AAGuZfbkaQc-s2icbMpljkjokKkzg_azkYI"
+BOT_TOKEN = "7018443911:AAFP7YgMlc03URuqMUv-_VzysmewC0vt8jM"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 STRIPE_PUBLISHABLE_KEY = "pk_live_51Jhet4HYghhmd4CamObYqu2qaPmZlp3SqgYcBfUbKrgBBnS040UHuHvzuHxl7I4GQwFXEwjAx62BQu01Q76BRmum00dZ72P1K2"
