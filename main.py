@@ -6,50 +6,56 @@ import urllib.parse
 BOT_TOKEN = "7018443911:AAFP7YgMlc03URuqMUv-_VzysmewC0vt8jM"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-def search_topic_and_get_url(topic):
+def search_and_extract_info(topic):
     # Encode topic for URL
     query = urllib.parse.quote(topic)
-    search_url = f"https://zaniary.com/blog?search={query}"
-    resp = requests.get(search_url)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, 'html.parser')
+    search_url = f"https://zaniary.com/blogs?search={query}"
 
-    # Find the first article link in the search result
-    # Adjust selector if needed based on actual HTML structure
-    first_link = soup.select_one('a.blog-title, a.post-title, a[href^="/blog/"]')
-    if first_link and first_link.get('href'):
-        article_url = urllib.parse.urljoin(search_url, first_link['href'])
-        return article_url
-    return None
+    response = requests.get(search_url)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-def extract_answer_from_article(url):
-    resp = requests.get(url)
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    # Use the selector you provided
-    answer_p = soup.select_one('#mw-content-text > div.js_blog_content > p:nth-child(2)')
-    if answer_p:
-        return answer_p.get_text(strip=True)
-    return None
+    # Find all blog entries in search results
+    # Inspect the page to find the container for each blog post summary
+    # Based on your example, let's assume each post is inside a div with class 'blog-entry' or similar
+    # You need to adjust the selector based on actual HTML structure of search results
+    posts = soup.select('div.blog-entry, div.blog-post, div.post')  # Try these selectors, adjust if needed
+
+    if not posts:
+        # If no posts found with above selectors, fallback: try to get all content under main container
+        main_content = soup.select_one('div#main-content, div.content, div.blog-list')
+        if main_content:
+            text = main_content.get_text(separator='\n', strip=True)
+            if text:
+                return text
+        return None
+
+    # Extract text from each post summary and join them
+    all_texts = []
+    for post in posts:
+        # Extract all text inside each post block
+        text = post.get_text(separator='\n', strip=True)
+        if text:
+            all_texts.append(text)
+
+    if all_texts:
+        return "\n\n---\n\n".join(all_texts)
+    else:
+        return None
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     topic = message.text.strip()
     try:
-        article_url = search_topic_and_get_url(topic)
-        if not article_url:
-            bot.reply_to(message, "Sorry, I couldn't find any article for your topic.")
-            return
-
-        answer = extract_answer_from_article(article_url)
-        if answer:
+        info = search_and_extract_info(topic)
+        if info:
             # Telegram message limit is 4096 characters
-            if len(answer) > 4000:
-                answer = answer[:4000] + "\n\n...[truncated]"
-            bot.reply_to(message, answer)
+            if len(info) > 4000:
+                info = info[:4000] + "\n\n...[truncated]"
+            bot.reply_to(message, info)
         else:
-            bot.reply_to(message, "Sorry, I couldn't find an answer in the article.")
+            bot.reply_to(message, "Sorry, I couldn't find any information on that topic.")
     except Exception as e:
-        bot.reply_to(message, f"Error: {e}")
+        bot.reply_to(message, f"Error occurred: {e}")
 
 bot.polling()
