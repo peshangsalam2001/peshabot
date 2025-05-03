@@ -2,4 +2,4 @@ telebot
 requests
 pyTelegramBotAPI
 beautifulsoup4
-pytube
+yt-dlp
