@@ -1,58 +1,45 @@
 import telebot
-import yt_dlp
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from tiktok import TikTokApi  # adjust if your package name differs
+import os
 
-# Replace with your bot token and channel username
-TOKEN = "7018443911:AAFP7YgMlc03URuqMUv-_VzysmewC0vt8jM"
-CHANNEL_USERNAME = "@KurdishBots"
+API_TOKEN = '7835872937:AAHmy808cQtDdMysSxlli_RlbVKOBkkyApA'
+bot = telebot.TeleBot(API_TOKEN)
 
-bot = telebot.TeleBot(TOKEN)
-
-# Check if user is member of channel
-def is_member(user_id):
-    try:
-        chat_member = bot.get_chat_member(CHANNEL_USERNAME, user_id)
-        return chat_member.status in ['member', 'administrator', 'creator']
-    except Exception:
-        return False
+# Initialize TikTok API client
+api = TikTokApi()
 
 @bot.message_handler(commands=['start'])
-def start(message):
-    if not is_member(message.from_user.id):
-        bot.send_message(message.chat.id, "Please join the channel first: " + CHANNEL_USERNAME)
-        return
-    markup = InlineKeyboardMarkup()
-    btn_video = InlineKeyboardButton("Download Video", callback_data="video")
-    btn_shorts = InlineKeyboardButton("Download Shorts", callback_data="shorts")
-    markup.add(btn_video, btn_shorts)
-    bot.send_message(message.chat.id, "Welcome! Choose what to download:", reply_markup=markup)
+def send_welcome(message):
+    bot.reply_to(message, "👋 Send me a TikTok video link, and I'll download the video for you.")
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle_query(call):
-    if call.data in ["video", "shorts"]:
-        bot.send_message(call.message.chat.id, f"Please send the YouTube {call.data} link.")
-        bot.register_next_step_handler(call.message, lambda m: download_video(m, call.data))
-
-def download_video(message, media_type):
-    if not is_member(message.from_user.id):
-        bot.send_message(message.chat.id, "Please join the channel first: " + CHANNEL_USERNAME)
-        return
-
-    url = message.text
-    if not url.startswith(('http://', 'https://')):
-        bot.send_message(message.chat.id, "Invalid URL. Please send a valid YouTube link.")
-        return
+@bot.message_handler(func=lambda message: True)
+def download_tiktok_video(message):
+    url = message.text.strip()
+    bot.send_message(message.chat.id, "⏳ Downloading your TikTok video, please wait...")
 
     try:
-        ydl_opts = {'outtmpl': '%(title)s.%(ext)s'}
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            file_path = ydl.prepare_filename(info)
-            ydl.download([url])
-        with open(file_path, 'rb') as video:
-            bot.send_video(message.chat.id, video)
-    except Exception as e:
-        bot.send_message(message.chat.id, f"Error: {str(e)}")
+        # Extract video ID from URL
+        video_id = url.split("/video/")[1].split("?")[0]
 
-print("Bot is running...")
-bot.infinity_polling()
+        # Download video bytes
+        video_bytes = api.video(id=video_id).bytes()
+
+        # Save video temporarily
+        filename = f"{video_id}.mp4"
+        with open(filename, 'wb') as f:
+            f.write(video_bytes)
+
+        # Send video file to user
+        with open(filename, 'rb') as video:
+            bot.send_video(message.chat.id, video)
+
+        # Remove temp file
+        os.remove(filename)
+
+    except Exception as e:
+        bot.send_message(message.chat.id, "❌ Failed to download video. Please make sure the link is valid.")
+        print(f"Error: {e}")
+
+if __name__ == '__main__':
+    print("Bot is running...")
+    bot.polling()
