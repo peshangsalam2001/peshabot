@@ -94,6 +94,48 @@ def download_command(message):
     bot.send_message(message.chat.id, "تکایە لینکی ڤیدیۆکە بنێرە تاکو داونلۆدی بکەم بۆت")
     awaiting_tiktok_link.add(user_id)
 
+@bot.message_handler(commands=['stats'])
+def stats_command(message):
+    if message.from_user.username == OWNER_USERNAME:
+        user_count = len(stats['users_started'])
+        valid_links = stats['valid_links']
+        text = (
+            f"📊 نوێترین زانیاری بۆت:\n"
+            f"👥 ژمارەی بەکارهێنەران: {user_count}\n"
+            f"🎬 ژمارەی لینکی ڤیدیۆی دروست داواکراوە: {valid_links}\n"
+            f"⏰ کاتی داواکاری: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}"
+        )
+        bot.reply_to(message, text)
+    else:
+        bot.reply_to(message, "فەرمانەکە تەنها بۆ خاوەنی بۆتە.")
+
+@bot.message_handler(commands=['post'])
+def post_command(message):
+    if message.from_user.username == OWNER_USERNAME:
+        msg = bot.send_message(message.chat.id, "تکایە پەیامەکەت بنێرە تاکو منیش بینێرم بۆ بەکارهێنەران")
+        bot.register_next_step_handler(msg, process_post)
+    else:
+        bot.delete_message(message.chat.id, message.message_id)
+
+def process_post(message):
+    if message.from_user.username == OWNER_USERNAME:
+        sent = 0
+        errors = 0
+        total = len(stats['users_started'])
+        for user_id in stats['users_started']:
+            try:
+                if message.content_type == 'text':
+                    bot.send_message(user_id, message.text)
+                elif message.content_type == 'photo':
+                    bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
+                elif message.content_type == 'video':
+                    bot.send_video(user_id, message.video.file_id, caption=message.caption)
+                sent += 1
+                time.sleep(0.5)
+            except Exception:
+                errors += 1
+        bot.send_message(message.chat.id, f"✅ نێردرا بۆ {sent} بەکارهێنەر | شکستی هێنا بۆ {errors}")
+
 @bot.message_handler(func=lambda m: True)
 def handle_all_messages(message):
     user_id = message.from_user.id
@@ -113,15 +155,14 @@ def handle_all_messages(message):
         stats['valid_links'] += 1
         download_and_send_tiktok(message, text)
     else:
-        # Handle messages other than /start and /download
         if text.lower() == '/start':
             send_welcome(message)
         elif text.lower() == '/download':
             download_command(message)
         else:
             bot.reply_to(message,
-                         "بۆ گەڕانەوە بۆ لیستی سەرەکی /start بنێرە\n"
-                         "بۆ داونلۆدکردنی ڤیدیۆی تیکتۆک /download بنێرە")
+                         "بۆ گەڕانەوە بۆ لیستی سەرەکی /start بنێرە\n\n"
+                         "بۆ داونلۆدکردنی ڤیدیۆی تیکتۆک /download بنێرە\n")
 
 def get_tiktok_api_links(tiktok_url):
     api_url = f"https://tikwm.com/api/?url={tiktok_url}"
