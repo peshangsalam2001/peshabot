@@ -10,6 +10,9 @@ bot = telebot.TeleBot(BOT_TOKEN)
 CHANNEL = "@KurdishBots"
 ADMIN = "@MasterLordBoss"
 
+# Tutorial video direct link (replace with your actual link if needed)
+TUTORIAL_VIDEO_URL = "https://media-hosting.imagekit.io/a031c091769643da/IMG_4141%20(1).MP4?Expires=1841246907&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=z6BkaPkTwhTwjl-QZw6VNroAuS7zbxxIboZclk8Ww1GTQpxK~M-03JNLXt5Ml6pReIyvxJGGKBGX60~uGI2S5Tev3QtMHz3hIa7iPTQIrfv1p32oTvwyycnFfvecpFAofB-4qGSvZ5YsynhnrpUJT-fH25ROpkGnj9xMo87KWlrd6E1G9sWP5PNwpnLkRMkoh2uZLyWA935JPLX0bJMRGdovqmrORlp7XvxoOom2vHg2zydq1JSDVDlbxGFsM3guN8GWSPSM-pfOymZfJY-r~ajDT8sD~fjDCUwji~zW~LCqLTYdwHhglJXmtOStjsmeXqn4JOU2Q85LtIM~LHRTgA__"
+
 user_last_download_time = {}
 awaiting_tiktok_link = set()  # Track users who clicked download button or sent /download and waiting for link
 
@@ -23,13 +26,13 @@ def main_markup():
     markup = types.InlineKeyboardMarkup()
     markup.row(types.InlineKeyboardButton("کەناڵی سەرەکی", url="https://t.me/KurdishBots"))
     markup.row(types.InlineKeyboardButton("دابەزاندنی ڤیدیۆی تیکتۆک", callback_data='tiktok_download'))
-    markup.row(types.InlineKeyboardButton("چۆنیاتی بەکارهێنانی بۆتەکە", callback_data='howto'))
+    markup.row(types.InlineKeyboardButton("چۆنیەتی بەکارهێنانی بۆتەکە", callback_data='howto'))
     markup.row(types.InlineKeyboardButton("پەیوەندیم پێوەبکە", url=f"https://t.me/{ADMIN[1:]}"))
     return markup
 
 def is_valid_tiktok_link(text):
-    # Simple regex for tiktok links
-    pattern = r'https?://(www\.|vm\.)?tiktok\.com/.+'
+    # Accepts https://www.tiktok.com/, https://vt.tiktok.com/, https://vm.tiktok.com/
+    pattern = r'https?://(www\.tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)/.+'
     return re.match(pattern, text)
 
 @bot.message_handler(commands=['start'])
@@ -48,8 +51,15 @@ def callback_handler(call):
         bot.send_message(call.message.chat.id, "تکایە لینکی ڤیدیۆکە بنێرە تاکو داونلۆدی بکەم بۆت")
         awaiting_tiktok_link.add(call.from_user.id)
     elif call.data == 'howto':
-        bot.send_message(call.message.chat.id,
-                         "1. لینکێکی تیکتۆک بنێرە\n2. چاوەڕوانبە تاکو ڤیدیۆکەت بۆ دەنێرم\n\nبۆ پەیوەندی: @MasterLordBoss")
+        caption = ("ئەم ڤیدیۆیە فێرکاری چۆنیەتی بەکارهێنانی بۆتەکەیە ✅")
+        try:
+            video_response = requests.get(TUTORIAL_VIDEO_URL, stream=True, timeout=60)
+            if video_response.status_code == 200:
+                bot.send_video(call.message.chat.id, video_response.content, caption=caption)
+            else:
+                bot.send_message(call.message.chat.id, "❌ نەتوانرا ڤیدیۆی ڕاهێنان باربکات.")
+        except Exception as e:
+            bot.send_message(call.message.chat.id, f"❌ هەڵە لە ناردنی ڤیدیۆ: {str(e)}")
 
 @bot.message_handler(commands=['download'])
 def download_command(message):
@@ -92,7 +102,6 @@ def get_tiktok_api_links(tiktok_url):
         if not res.get("data"):
             return []
         qualities = []
-        # TikWM keys from best to lower quality
         for key in ['play', 'play_1080p', 'play_720p', 'play_480p', 'play_360p']:
             link = res["data"].get(key)
             if link:
