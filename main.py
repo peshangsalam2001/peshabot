@@ -1,43 +1,35 @@
 import telebot
-from tiktok import TikTokApi  # adjust if your package name differs
+from tikdown import TikTok
 import os
 
 API_TOKEN = '7835872937:AAHmy808cQtDdMysSxlli_RlbVKOBkkyApA'
 bot = telebot.TeleBot(API_TOKEN)
 
-# Initialize TikTok API client
-api = TikTokApi()
-
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "👋 Send me a TikTok video link, and I'll download the video for you.")
+def start(message):
+    bot.reply_to(message, "Send me a TikTok video link and I'll download it for you!")
 
 @bot.message_handler(func=lambda message: True)
-def download_tiktok_video(message):
+def download_video(message):
     url = message.text.strip()
-    bot.send_message(message.chat.id, "⏳ Downloading your TikTok video, please wait...")
+    bot.send_message(message.chat.id, "Downloading your TikTok video, please wait...")
 
     try:
-        # Extract video ID from URL
-        video_id = url.split("/video/")[1].split("?")[0]
+        tiktok = TikTok(url)
+        video_url = tiktok.get_media_url()
+        video_data = tiktok.download_media(video_url)
 
-        # Download video bytes
-        video_bytes = api.video(id=video_id).bytes()
-
-        # Save video temporarily
-        filename = f"{video_id}.mp4"
+        filename = "tiktok_video.mp4"
         with open(filename, 'wb') as f:
-            f.write(video_bytes)
+            f.write(video_data)
 
-        # Send video file to user
-        with open(filename, 'rb') as video:
-            bot.send_video(message.chat.id, video)
+        with open(filename, 'rb') as video_file:
+            bot.send_video(message.chat.id, video_file)
 
-        # Remove temp file
         os.remove(filename)
 
     except Exception as e:
-        bot.send_message(message.chat.id, "❌ Failed to download video. Please make sure the link is valid.")
+        bot.send_message(message.chat.id, "Failed to download video. Please check the link and try again.")
         print(f"Error: {e}")
 
 if __name__ == '__main__':
