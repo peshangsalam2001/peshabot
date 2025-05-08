@@ -1,3 +1,2 @@
-pyTelegramBotAPI
-tikdown
-telebot
+pyTelegramBotAPI==4.26.0
+tikdown==1.0.4
