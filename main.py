@@ -1,37 +1,27 @@
 import telebot
-from tikdown import TikTok
-import os
+import requests
 
-API_TOKEN = '7835872937:AAHmy808cQtDdMysSxlli_RlbVKOBkkyApA'
-bot = telebot.TeleBot(API_TOKEN)
+BOT_TOKEN = '7835872937:AAHmy808cQtDdMysSxlli_RlbVKOBkkyApA'
+bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
-def start(message):
-    bot.reply_to(message, "Send me a TikTok video link and I'll download it for you!")
+def send_welcome(message):
+    bot.send_message(message.chat.id, "Send me a TikTok video link, and I'll download it for you.")
 
-@bot.message_handler(func=lambda message: True)
-def download_video(message):
+@bot.message_handler(func=lambda m: 'tiktok.com' in m.text)
+def download_tiktok_video(message):
     url = message.text.strip()
-    bot.send_message(message.chat.id, "Downloading your TikTok video, please wait...")
 
+    api_url = f"https://tikwm.com/api/?url={url}"
     try:
-        tiktok = TikTok(url)
-        video_url = tiktok.get_media_url()
-        video_data = tiktok.download_media(video_url)
-
-        filename = "tiktok_video.mp4"
-        with open(filename, 'wb') as f:
-            f.write(video_data)
-
-        with open(filename, 'rb') as video_file:
-            bot.send_video(message.chat.id, video_file)
-
-        os.remove(filename)
-
+        res = requests.get(api_url).json()
+        if res.get("data") and res["data"].get("play"):
+            video_url = res["data"]["play"]
+            video_response = requests.get(video_url)
+            bot.send_video(message.chat.id, video_response.content)
+        else:
+            bot.send_message(message.chat.id, "❌ Failed to fetch video. Please check the link.")
     except Exception as e:
-        bot.send_message(message.chat.id, "Failed to download video. Please check the link and try again.")
-        print(f"Error: {e}")
+        bot.send_message(message.chat.id, f"⚠️ Error: {e}")
 
-if __name__ == '__main__':
-    print("Bot is running...")
-    bot.polling()
+bot.polling()
