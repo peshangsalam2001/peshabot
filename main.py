@@ -99,7 +99,7 @@ def callback_handler(call):
 def download_media(message, url):
     chat_id = message.chat.id
     user_id = message.from_user.id
-    msg = bot.reply_to(message, "🔍 چاوەڕوانبە... پشکنینی لینک")
+    msg = bot.reply_to(message, "🔍 چاوەڕوانبە... هەر ئێستا داونلۆدی ئەکەم ")
     
     try:
         if is_youtube_url(url):
@@ -147,12 +147,12 @@ def handle_youtube(url, chat_id, msg_id):
                 os.remove(file_path)
                 bot.delete_message(chat_id, msg_id)
             else:
-                bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دوای دابەزاندن", chat_id, msg_id)
+                bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دیسان هەوڵبدەرەوە", chat_id, msg_id)
     except yt_dlp.utils.DownloadError as e:
         if "File is larger than max-filesize" in str(e):
             bot.edit_message_text("❌ قەبارەی ڤیدیۆکە لە 50MB زیاترە", chat_id, msg_id)
         else:
-            bot.edit_message_text(f"❌ هەڵە لە دابەزاندن:\n{str(e)}", chat_id, msg_id)
+            bot.edit_message_text(f"❌ هەڵەی تەکنیکی:\n{str(e)}", chat_id, msg_id)
     except Exception as e:
         bot.edit_message_text(f"❌ هەڵەی نەناسراو:\n{str(e)}", chat_id, msg_id)
 
