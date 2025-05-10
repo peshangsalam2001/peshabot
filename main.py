@@ -6,7 +6,7 @@ import re
 import random
 import time
 
-API_TOKEN = 'YOUR_BOT_TOKEN_HERE'
+API_TOKEN = '7595180485:AAELAJ6ZWq2x-S5ruuQzbmSG89zrDqZtvLU'
 bot = telebot.TeleBot(API_TOKEN)
 
 user_states = {}
