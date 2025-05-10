@@ -8,7 +8,7 @@ from telebot import types
 import yt_dlp
 
 
-BOT_TOKEN = '7835872937:AAHmy808cQtDdMysSxlli_RlbVKOBkkyApA'
+BOT_TOKEN = '7595180485:AAELAJ6ZWq2x-S5ruuQzbmSG89zrDqZtvLU'
 bot = telebot.TeleBot(BOT_TOKEN)
 
 CHANNEL = "@KurdishBots"
