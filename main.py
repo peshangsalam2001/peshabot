@@ -57,8 +57,19 @@ def is_youtube_url(url):
 def is_tiktok_url(url):
     return re.search(r'https?://(www\.tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)/', url)
 
+def is_facebook_url(url):
+    # Support Facebook video, reels, stories URLs
+    patterns = [
+        r'https?://(www\.)?facebook\.com/.+/videos/.+',
+        r'https?://(www\.)?facebook\.com/reel/.+',
+        r'https?://(www\.)?facebook\.com/story\.php\?story_fbid=.+',
+        r'https?://(www\.)?facebook\.com/.+/stories/.+',
+        r'https?://fb.watch/.+',
+    ]
+    return any(re.match(pattern, url) for url_pattern in patterns for pattern in [url_pattern])
+
 def is_valid_link(text):
-    return is_youtube_url(text) or is_tiktok_url(text)
+    return is_youtube_url(text) or is_tiktok_url(text) or is_facebook_url(text)
 
 def main_markup():
     markup = types.InlineKeyboardMarkup()
@@ -88,7 +99,7 @@ def start_handler(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     if call.data == 'download':
-        bot.send_message(call.message.chat.id, "🎬 تکایە لینکی ڤیدیۆکەت بنێرە (یوتوب / تیکتۆک)")
+        bot.send_message(call.message.chat.id, "🎬 تکایە لینکی ڤیدیۆکەت بنێرە (یوتوب / تیکتۆک / فەیسبووک)")
     elif call.data == 'howto':
         try:
             bot.send_video(call.message.chat.id, TUTORIAL_VIDEO_URL, 
@@ -99,13 +110,15 @@ def callback_handler(call):
 def download_media(message, url):
     chat_id = message.chat.id
     user_id = message.from_user.id
-    msg = bot.reply_to(message, "🔍 چاوەڕوانبە... هەر ئێستا داونلۆدی ئەکەم ")
+    msg = bot.reply_to(message, "🔍 چاوەڕوانبە... پشکنینی لینک")
     
     try:
         if is_youtube_url(url):
             handle_youtube(url, chat_id, msg.message_id)
         elif is_tiktok_url(url):
             handle_tiktok(url, chat_id, msg.message_id)
+        elif is_facebook_url(url):
+            handle_facebook(url, chat_id, msg.message_id)
         else:
             bot.edit_message_text("لینکەکەت هەڵەیە ❌", chat_id, msg.message_id)
     except Exception as e:
@@ -114,45 +127,37 @@ def download_media(message, url):
         user_last_download_time[user_id] = time.time()
 
 def handle_youtube(url, chat_id, msg_id):
-    # Detect if it's a shorts URL for caption difference
     is_shorts = bool(re.search(r'youtube\.com/shorts/', url))
-    
     ydl_opts = {
-        # Select best mp4 video + best m4a audio, fallback to best
         'format': 'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best',
         'outtmpl': 'downloads/%(title).100s.%(ext)s',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'cookiefile': 'cookies.txt',  # Make sure this file exists and is valid
+        'cookiefile': 'cookies.txt',  # Your cookies file path
         'max_filesize': 50 * 1024 * 1024,
-        'merge_output_format': 'mp4',  # Force merged output as mp4
+        'merge_output_format': 'mp4',
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file_path = ydl.prepare_filename(info)
-            # Change extension to mp4 if merged output
             if not file_path.lower().endswith('.mp4'):
                 file_path = os.path.splitext(file_path)[0] + '.mp4'
-            
             if os.path.exists(file_path):
                 with open(file_path, 'rb') as f:
-                    if is_shorts:
-                        caption = "کورتە ڤیدیۆی یوتوب بەسەرکەوتوویی داونلۆدکرا ✅"
-                    else:
-                        caption = "ڤیدیۆی یوتوب بەسەرکەوتوویی داونلۆدکرا ✅"
+                    caption = "کورتە ڤیدیۆی یوتوب بەسەرکەوتوویی داونلۆدکرا ✅" if is_shorts else "ڤیدیۆی یوتوب بەسەرکەوتوویی داونلۆدکرا ✅"
                     bot.send_video(chat_id, f, caption=caption)
                 os.remove(file_path)
                 bot.delete_message(chat_id, msg_id)
             else:
-                bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دیسان هەوڵبدەرەوە", chat_id, msg_id)
+                bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دوای دابەزاندن", chat_id, msg_id)
     except yt_dlp.utils.DownloadError as e:
         if "File is larger than max-filesize" in str(e):
             bot.edit_message_text("❌ قەبارەی ڤیدیۆکە لە 50MB زیاترە", chat_id, msg_id)
         else:
-            bot.edit_message_text(f"❌ هەڵەی تەکنیکی:\n{str(e)}", chat_id, msg_id)
+            bot.edit_message_text(f"❌ هەڵە لە دابەزاندن:\n{str(e)}", chat_id, msg_id)
     except Exception as e:
         bot.edit_message_text(f"❌ هەڵەی نەناسراو:\n{str(e)}", chat_id, msg_id)
 
@@ -160,25 +165,53 @@ def handle_tiktok(url, chat_id, msg_id):
     try:
         api_url = f"https://tikwm.com/api/?url={url}"
         response = requests.get(api_url, timeout=30).json()
-        
         if not response.get('data'):
             raise Exception("هیچ داتایەک نەدۆزرایەوە")
-            
         video_url = response['data'].get('play') or response['data'].get('wmplay')
         if not video_url:
             raise Exception("نەتوانرا لینکی ڤیدیۆ بدۆزرێتەوە")
-            
         video_data = requests.get(video_url, timeout=60).content
         if len(video_data) > 50 * 1024 * 1024:
             raise Exception("قەبارەی ڤیدیۆکە لە 50MB زیاترە")
-            
         caption = ("ڤیدیۆی تیکتۆک بەسەرکەوتوویی داونلۆدکرا ✅\n\n"
                    "🚀 سەردانی @KurdishBots بکە بۆ بەدەستهێنانی بۆتی زیاتر و سوودبەخش")
         bot.send_video(chat_id, video_data, caption=caption)
         bot.delete_message(chat_id, msg_id)
-        
     except Exception as e:
         bot.edit_message_text(f"❌ هەڵە لە دابەزاندنی تیکتۆک: {str(e)}", chat_id, msg_id)
+
+def handle_facebook(url, chat_id, msg_id):
+    ydl_opts = {
+        'format': 'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best',
+        'outtmpl': 'downloads/%(title).100s.%(ext)s',
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'cookiefile': 'cookies.txt',  # Your cookies file path
+        'max_filesize': 50 * 1024 * 1024,
+        'merge_output_format': 'mp4',
+    }
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            file_path = ydl.prepare_filename(info)
+            if not file_path.lower().endswith('.mp4'):
+                file_path = os.path.splitext(file_path)[0] + '.mp4'
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as f:
+                    caption = "ڤیدیۆی فەیسبووک بەسەرکەوتوویی داونلۆدکرا ✅"
+                    bot.send_video(chat_id, f, caption=caption)
+                os.remove(file_path)
+                bot.delete_message(chat_id, msg_id)
+            else:
+                bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دوای دابەزاندن", chat_id, msg_id)
+    except yt_dlp.utils.DownloadError as e:
+        if "File is larger than max-filesize" in str(e):
+            bot.edit_message_text("❌ قەبارەی ڤیدیۆکە لە 50MB زیاترە", chat_id, msg_id)
+        else:
+            bot.edit_message_text(f"❌ هەڵە لە دابەزاندن:\n{str(e)}", chat_id, msg_id)
+    except Exception as e:
+        bot.edit_message_text(f"❌ هەڵەی نەناسراو:\n{str(e)}", chat_id, msg_id)
 
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
