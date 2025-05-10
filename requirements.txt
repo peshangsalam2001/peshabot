@@ -1,5 +1,3 @@
-pytelegrambotapi
+pyTelegramBotAPI
 requests
-telebot
 yt-dlp
-yt_dlp
