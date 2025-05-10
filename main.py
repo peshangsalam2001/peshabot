@@ -15,14 +15,15 @@ USER_DATA_FILE = 'bot_users.json'
 
 bot = telebot.TeleBot(TOKEN)
 
-# User data management
+# Persistent user storage functions
 def load_users():
-    try:
-        if os.path.exists(USER_DATA_FILE):
+    if os.path.exists(USER_DATA_FILE):
+        try:
             with open(USER_DATA_FILE, 'r', encoding='utf-8') as f:
-                return set(json.load(f).get('users_started', []))
-    except Exception:
-        pass
+                data = json.load(f)
+                return set(data.get('users_started', []))
+        except Exception:
+            return set()
     return set()
 
 def save_users(users):
@@ -37,6 +38,7 @@ stats = {
 
 user_last_download_time = {}
 
+# Tutorial video URL
 TUTORIAL_VIDEO_URL = "https://media-hosting.imagekit.io/a031c091769643da/IMG_4141%20(1).MP4?Expires=1841246907&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=z6BkaPkTwhTwjl-QZw6VNroAuS7zbxxIboZclk8Ww1GTQpxK~M-03JNLXt5Ml6pReIyvxJGGKBGX60~uGI2S5Tev3QtMHz3hIa7iPTQIrfv1p32oTvwyycnFfvecpFAofB-4qGSvZ5YsynhnrpUJT-fH25ROpkGnj9xMo87KWlrd6E1G9sWP5PNwpnLkRMkoh2uZLyWA935JPLX0bJMRGdovqmrORlp7XvxoOom2vHg2zydq1JSDVDlbxGFsM3guN8GWSPSM-pfOymZfJY-r~ajDT8sD~fjDCUwji~zW~LCqLTYdwHhglJXmtOStjsmeXqn4JOU2Q85LtIM~LHRTgA__"
 
 def is_member(user_id):
@@ -55,6 +57,9 @@ def is_youtube_url(url):
 
 def is_tiktok_url(url):
     return re.search(r'https?://(www\.tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)/', url)
+
+def is_valid_link(text):
+    return is_youtube_url(text) or is_tiktok_url(text)
 
 def main_markup():
     markup = types.InlineKeyboardMarkup()
@@ -84,7 +89,7 @@ def start_handler(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     if call.data == 'download':
-        bot.send_message(call.message.chat.id, "📥 لینکی ڤیدیۆکە بنێرە (یوتوب/تیکتۆک)")
+        bot.send_message(call.message.chat.id, "📥 تکایە لینکی ڤیدیۆکەت بنێرە (یوتوب/تیکتۆک)")
     elif call.data == 'howto':
         try:
             bot.send_video(call.message.chat.id, TUTORIAL_VIDEO_URL, 
@@ -107,26 +112,23 @@ def download_media(message, url):
     except Exception as e:
         bot.edit_message_text(f"❌ هەڵە: {str(e)}", chat_id, msg.message_id)
     finally:
-        if user_id in user_last_download_time:
-            user_last_download_time[user_id] = time.time()
+        user_last_download_time[user_id] = time.time()
 
 def handle_youtube(url, chat_id, msg_id):
     ydl_opts = {
         'format': 'bestvideo[height<=1080]+bestaudio/best',
-        'outtmpl': 'downloads/%(title)s.%(ext)s',
+        'outtmpl': 'downloads/%(title).100s.%(ext)s',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'postprocessors': [],
+        'cookiefile': 'cookies.txt',  # Make sure this file exists and is valid
         'max_filesize': 50 * 1024 * 1024,
-        'progress_hooks': [lambda d: progress_hook(d, chat_id, msg_id)],
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             file_path = ydl.prepare_filename(info)
-            
             if os.path.exists(file_path):
                 with open(file_path, 'rb') as f:
                     bot.send_video(chat_id, f, caption="✅ ڤیدیۆکەت بە سەرکەوتوویی دابەزێنرا\n@KurdishBots")
@@ -134,14 +136,13 @@ def handle_youtube(url, chat_id, msg_id):
                 bot.delete_message(chat_id, msg_id)
             else:
                 bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دوای دابەزاندن", chat_id, msg_id)
-                
-        except yt_dlp.utils.DownloadError as e:
-            if "File is larger than max-filesize" in str(e):
-                bot.edit_message_text("❌ قەبارەی ڤیدیۆکە لە 50MB زیاترە", chat_id, msg_id)
-            else:
-                bot.edit_message_text(f"❌ هەڵە لە دابەزاندن: {str(e)}", chat_id, msg_id)
-        except Exception as e:
-            bot.edit_message_text(f"❌ هەڵەی نەناسراو: {str(e)}", chat_id, msg_id)
+    except yt_dlp.utils.DownloadError as e:
+        if "File is larger than max-filesize" in str(e):
+            bot.edit_message_text("❌ قەبارەی ڤیدیۆکە لە 50MB زیاترە", chat_id, msg_id)
+        else:
+            bot.edit_message_text(f"❌ هەڵە لە دابەزاندن:\n{str(e)}", chat_id, msg_id)
+    except Exception as e:
+        bot.edit_message_text(f"❌ هەڵەی نەناسراو:\n{str(e)}", chat_id, msg_id)
 
 def handle_tiktok(url, chat_id, msg_id):
     try:
@@ -165,24 +166,20 @@ def handle_tiktok(url, chat_id, msg_id):
     except Exception as e:
         bot.edit_message_text(f"❌ هەڵە لە دابەزاندنی تیکتۆک: {str(e)}", chat_id, msg_id)
 
-def progress_hook(d, chat_id, msg_id):
-    if d['status'] == 'downloading':
-        progress = f"📥 داگرتن: {d['_percent_str']} | خێرایی: {d['_speed_str']}"
-        try:
-            bot.edit_message_text(progress, chat_id, msg_id)
-        except:
-            pass
-
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
     user_id = message.from_user.id
-    text = message.text.strip()
+    text = message.text.strip() if message.text else ""
     
     if not is_member(user_id):
         bot.reply_to(message, f"❌ تکایە سەرەتا جۆینی کەناڵەکەمان بکە:\n{CHANNEL}")
         return
     
-    if not (is_youtube_url(text) or is_tiktok_url(text)):
+    if text == '/start':
+        start_handler(message)
+        return
+    
+    if not is_valid_link(text):
         bot.reply_to(message, "❌ لینکێکی دروست بنێرە (یوتوب/تیکتۆک)")
         return
     
