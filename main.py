@@ -1,10 +1,6 @@
-import os
-import re
-import time
-import json
 import requests
 import telebot
-from telebot import types
+import yt-dlp
 
 BOT_TOKEN = '7835872937:AAHmy808cQtDdMysSxlli_RlbVKOBkkyApA'
 bot = telebot.TeleBot(BOT_TOKEN)
