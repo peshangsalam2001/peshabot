@@ -15,15 +15,14 @@ USER_DATA_FILE = 'bot_users.json'
 
 bot = telebot.TeleBot(TOKEN)
 
-# Persistent user storage functions
+# User data management
 def load_users():
-    if os.path.exists(USER_DATA_FILE):
-        try:
+    try:
+        if os.path.exists(USER_DATA_FILE):
             with open(USER_DATA_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return set(data.get('users_started', []))
-        except Exception:
-            return set()
+                return set(json.load(f).get('users_started', []))
+    except Exception:
+        pass
     return set()
 
 def save_users(users):
@@ -48,104 +47,154 @@ def is_member(user_id):
 
 def is_youtube_url(url):
     patterns = [
-        r'^(https?\:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/watch\?v=',
-        r'^(https?\:\/\/)?(www\.)?youtube\.com\/shorts\/',
-        r'^(https?\:\/\/)?(www\.)?youtu\.be\/'
+        r'(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)',
+        r'(https?://)?(m\.youtube\.com/watch\?v=)',
+        r'(https?://)?(music\.youtube\.com/watch\?v=)'
     ]
-    return any(re.match(pattern, url) for pattern in patterns)
+    return any(re.search(pattern, url) for pattern in patterns)
 
 def is_tiktok_url(url):
-    return re.match(r'https?://(www\.tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)/.+', url)
-
-def is_valid_link(text):
-    return is_youtube_url(text) or is_tiktok_url(text)
+    return re.search(r'https?://(www\.tiktok\.com|vt\.tiktok\.com|vm\.tiktok\.com)/', url)
 
 def main_markup():
     markup = types.InlineKeyboardMarkup()
     markup.row(types.InlineKeyboardButton("کەناڵی سەرەکی", url="https://t.me/KurdishBots"))
-    markup.row(types.InlineKeyboardButton("دابەزاندنی ڤیدیۆ", callback_data='download_video'))
-    markup.row(types.InlineKeyboardButton("چۆنیەتی بەکارهێنانی بۆتەکە", callback_data='howto'))
-    markup.row(types.InlineKeyboardButton("پەیوەندیم پێوەبکە", url=f"https://t.me/{ADMIN[1:]}"))
+    markup.row(types.InlineKeyboardButton("دابەزاندنی ڤیدیۆ", callback_data='download'))
+    markup.row(types.InlineKeyboardButton("چۆنیەتی بەکارهێنان", callback_data='howto'))
+    markup.row(types.InlineKeyboardButton("پەیوەندی", url=f"https://t.me/{ADMIN[1:]}"))
     return markup
 
-def send_welcome(message):
+@bot.message_handler(commands=['start'])
+def start_handler(message):
     user_id = message.from_user.id
     if user_id not in stats['users_started']:
         stats['users_started'].add(user_id)
         save_users(stats['users_started'])
+    
     if is_member(user_id):
-        text = ("بەخێربێن بۆ بۆتی داونلۆدکردنی ڤیدیۆ لە سەرجەم سۆشیال میدیاکان 🤎\n\n"
-                "سەردانی @KurdishBots بکە بۆ سوودمەندبوون لە چەندین بۆتی ناوەزە بە خۆڕایی 👑")
-        bot.send_message(message.chat.id, text, reply_markup=main_markup())
+        bot.send_message(message.chat.id, 
+                        "بەخێربێن بۆ بۆتی داونلۆدکردنی ڤیدیۆ لە سەرجەم سۆشیال میدیاکان 🤎\n\n"
+                        "سەردانی @KurdishBots بکە بۆ چەندین بۆتی تری بەسوود 👑", 
+                        reply_markup=main_markup())
     else:
         bot.send_message(message.chat.id,
-                         f"بەخێربێن بۆ بۆتی داونلۆدکردنی ڤیدیۆ لەم پلاتفۆڕمانە (یوتوب، تیکتۆک) ✅\n\n"
-                         f"تکایە جۆینی ئەم کەناڵە بکە بۆ ئاگاداربوون لە هەموو گۆڕانکاریەکانی بۆتەکە و بەدەستهێنانی چەندین بۆتی بەسوودی هاوشێوە 👑\n"
-                         f"https://t.me/KurdishBots")
-
-@bot.message_handler(commands=['start'])
-def start_handler(message):
-    send_welcome(message)
+                        "بۆ بەکارهێنانی بۆتەکە سەرەتا پێویستە جۆینی کەناڵەکەمان بکەیت:\n"
+                        f"{CHANNEL}")
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
-    if call.data == 'download_video':
-        bot.send_message(call.message.chat.id, "تکایە لینکی ڤیدیۆکەت بنێرە")
+    if call.data == 'download':
+        bot.send_message(call.message.chat.id, "📥 لینکی ڤیدیۆکە بنێرە (یوتوب/تیکتۆک)")
     elif call.data == 'howto':
-        caption = "ئەم ڤیدیۆیە فێرکاری چۆنیەتی بەکارهێنانی بۆتەکەیە ✅"
         try:
-            video_response = requests.get(TUTORIAL_VIDEO_URL, stream=True, timeout=60)
-            if video_response.status_code == 200:
-                bot.send_video(call.message.chat.id, video_response.content, caption=caption)
-            else:
-                bot.send_message(call.message.chat.id, "❌ نەتوانرا ڤیدیۆی ڕاهێنان باربکات.")
+            bot.send_video(call.message.chat.id, TUTORIAL_VIDEO_URL, 
+                          caption="🎬 فێرکاری بەکارهێنانی بۆت")
         except Exception as e:
-            bot.send_message(call.message.chat.id, f"❌ هەڵە لە ناردنی ڤیدیۆ: {str(e)}")
+            bot.send_message(call.message.chat.id, f"❌ هەڵە لە بارکردنی ڤیدیۆ: {str(e)}")
 
-def download_youtube_video(message, url):
+def download_media(message, url):
     chat_id = message.chat.id
-    msg = bot.reply_to(message, "⏳ تکایە چاوەڕوانبە، ڤیدیۆکەت دابەزێنرێت...")
+    user_id = message.from_user.id
+    msg = bot.reply_to(message, "🔍 چاوەڕوانبە... پشکنینی لینک")
     
+    try:
+        if is_youtube_url(url):
+            handle_youtube(url, chat_id, msg.message_id)
+        elif is_tiktok_url(url):
+            handle_tiktok(url, chat_id, msg.message_id)
+        else:
+            bot.edit_message_text("❌ جۆری لینک نەناسێنرا", chat_id, msg.message_id)
+    except Exception as e:
+        bot.edit_message_text(f"❌ هەڵە: {str(e)}", chat_id, msg.message_id)
+    finally:
+        if user_id in user_last_download_time:
+            user_last_download_time[user_id] = time.time()
+
+def handle_youtube(url, chat_id, msg_id):
     ydl_opts = {
         'format': 'bestvideo[height<=1080]+bestaudio/best',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
-        'quiet': False,
-        'no_warnings': False,
-        'ignoreerrors': True,
-        'verbose': True,
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-        'cookiefile': 'cookies.txt',
-        'extractor_args': {
-            'youtube': {
-                'skip': [
-                    'dash',
-                    'hls'
-                ]
-            }
-        }
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'postprocessors': [],
+        'max_filesize': 50 * 1024 * 1024,
+        'progress_hooks': [lambda d: progress_hook(d, chat_id, msg_id)],
     }
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        try:
             info = ydl.extract_info(url, download=True)
-            if not info:
-                raise Exception("Failed to extract video info")
-            
             file_path = ydl.prepare_filename(info)
-            if os.path.getsize(file_path) > 50 * 1024 * 1024:
+            
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as f:
+                    bot.send_video(chat_id, f, caption="✅ ڤیدیۆکەت بە سەرکەوتوویی دابەزێنرا\n@KurdishBots")
                 os.remove(file_path)
-                raise Exception("File size exceeds 50MB limit")
-            
-            with open(file_path, 'rb') as f:
-                caption = ("ڤیدیۆکەت بەسەرکەوتوویی و بە بەرزتترین کوالیتی داونلۆدکرا ✅\n"
-                           "بۆ سوودمەندبوون لە چەندین بۆتی هاوشێوە بەخۆڕایی تکایە سەردانی کەناڵەکەمان بکە @KurdishBots")
-                bot.send_video(chat_id, f, caption=caption)
-            
-            os.remove(file_path)
-            bot.delete_message(chat_id, msg.message_id)
-            
-    except Exception as e:
-        bot.edit_message_text(f"❌ هەڵە لە دابەزاندنی ڤیدیۆ: {str(e)}", chat_id, msg.message_id)
+                bot.delete_message(chat_id, msg_id)
+            else:
+                bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دوای دابەزاندن", chat_id, msg_id)
+                
+        except yt_dlp.utils.DownloadError as e:
+            if "File is larger than max-filesize" in str(e):
+                bot.edit_message_text("❌ قەبارەی ڤیدیۆکە لە 50MB زیاترە", chat_id, msg_id)
+            else:
+                bot.edit_message_text(f"❌ هەڵە لە دابەزاندن: {str(e)}", chat_id, msg_id)
+        except Exception as e:
+            bot.edit_message_text(f"❌ هەڵەی نەناسراو: {str(e)}", chat_id, msg_id)
 
-# Rest of the code remains the same as previous version for TikTok handling and other functions...
-# [Keep the TikTok download function and other existing code unchanged]
+def handle_tiktok(url, chat_id, msg_id):
+    try:
+        api_url = f"https://tikwm.com/api/?url={url}"
+        response = requests.get(api_url, timeout=30).json()
+        
+        if not response.get('data'):
+            raise Exception("هیچ داتایەک نەدۆزرایەوە")
+            
+        video_url = response['data'].get('play') or response['data'].get('wmplay')
+        if not video_url:
+            raise Exception("نەتوانرا لینکی ڤیدیۆ بدۆزرێتەوە")
+            
+        video_data = requests.get(video_url, timeout=60).content
+        if len(video_data) > 50 * 1024 * 1024:
+            raise Exception("قەبارەی ڤیدیۆکە لە 50MB زیاترە")
+            
+        bot.send_video(chat_id, video_data, caption="✅ ڤیدیۆی تیکتۆک بە سەرکەوتوویی دابەزێنرا\n@KurdishBots")
+        bot.delete_message(chat_id, msg_id)
+        
+    except Exception as e:
+        bot.edit_message_text(f"❌ هەڵە لە دابەزاندنی تیکتۆک: {str(e)}", chat_id, msg_id)
+
+def progress_hook(d, chat_id, msg_id):
+    if d['status'] == 'downloading':
+        progress = f"📥 داگرتن: {d['_percent_str']} | خێرایی: {d['_speed_str']}"
+        try:
+            bot.edit_message_text(progress, chat_id, msg_id)
+        except:
+            pass
+
+@bot.message_handler(func=lambda m: True)
+def handle_message(message):
+    user_id = message.from_user.id
+    text = message.text.strip()
+    
+    if not is_member(user_id):
+        bot.reply_to(message, f"❌ تکایە سەرەتا جۆینی کەناڵەکەمان بکە:\n{CHANNEL}")
+        return
+    
+    if not (is_youtube_url(text) or is_tiktok_url(text)):
+        bot.reply_to(message, "❌ لینکێکی دروست بنێرە (یوتوب/تیکتۆک)")
+        return
+    
+    last_time = user_last_download_time.get(user_id, 0)
+    if time.time() - last_time < 15:
+        bot.reply_to(message, "⏳ تکایە ١٥ چرکە چاوەڕوانبە پێش ناردنی لینکی نوێ")
+        return
+    
+    stats['valid_links'] += 1
+    download_media(message, text)
+
+if __name__ == '__main__':
+    if not os.path.exists('downloads'):
+        os.makedirs('downloads')
+    bot.infinity_polling()
