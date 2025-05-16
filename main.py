@@ -7,7 +7,7 @@ import telebot
 from telebot import types
 import yt_dlp
 
-TOKEN = "7595180485:AAELAJ6ZWq2x-S5ruuQzbmSG89zrDqZtvLU"
+TOKEN = "7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI"
 CHANNEL = "@KurdishBots"
 ADMIN = "@MasterLordBoss"
 OWNER_USERNAME = "MasterLordBoss"
