@@ -104,7 +104,7 @@ def admin_commands(message):
 
     elif cmd == '/reset':
         stats['valid_links'] = 0
-        bot.send_message(message.chat.id, "✅ ئەنجامی داونلۆد سڕایەوە.")
+        bot.send_message(message.chat.id,"✅ ئەنجامی داونلۆد سڕایەوە.")
 
     elif cmd == '/export_users':
         with open(EXPORT_FILE, 'w') as f:
