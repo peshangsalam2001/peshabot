@@ -127,37 +127,68 @@ def download_media(message, url):
         user_last_download_time[user_id] = time.time()
 
 def handle_youtube(url, chat_id, msg_id):
-    is_shorts = bool(re.search(r'youtube\.com/shorts/', url))
-    ydl_opts = {
-        'format': 'bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/best',
+    # Try to download best quality, if >50MB try lower until <=50MB or no lower quality available
+    ydl_opts_base = {
         'outtmpl': 'downloads/%(title).100s.%(ext)s',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'cookiefile': 'cookies.txt',  # Your cookies file path
-        'max_filesize': 50 * 1024 * 1024,
+        'cookiefile': 'cookies.txt',  # Your cookies file path if needed
         'merge_output_format': 'mp4',
     }
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            file_path = ydl.prepare_filename(info)
-            if not file_path.lower().endswith('.mp4'):
-                file_path = os.path.splitext(file_path)[0] + '.mp4'
-            if os.path.exists(file_path):
-                with open(file_path, 'rb') as f:
-                    caption = "کورتە ڤیدیۆی یوتوب بەسەرکەوتوویی داونلۆدکرا ✅" if is_shorts else "ڤیدیۆی یوتوب بەسەرکەوتوویی داونلۆدکرا ✅"
-                    bot.send_video(chat_id, f, caption=caption)
-                os.remove(file_path)
-                bot.delete_message(chat_id, msg_id)
-            else:
-                bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دوای دابەزاندن", chat_id, msg_id)
-    except yt_dlp.utils.DownloadError as e:
-        if "File is larger than max-filesize" in str(e):
-            bot.edit_message_text("❌ قەبارەی ڤیدیۆکە لە 50MB زیاترە", chat_id, msg_id)
-        else:
-            bot.edit_message_text(f"❌ هەڵە لە دابەزاندن:\n{str(e)}", chat_id, msg_id)
+        with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+            info = ydl.extract_info(url, download=False)
+            formats = info.get('formats', [])
+            # Filter for mp4 video+audio or video only (we will try to merge)
+            # Sort formats by quality (height) descending
+            video_formats = [f for f in formats if f.get('ext') in ['mp4', 'mkv', 'webm']]
+            video_formats = sorted(video_formats, key=lambda x: (x.get('height') or 0), reverse=True)
+
+            # We'll try to find best format under 50MB after download
+            # But since size is unknown before download, try from best to worst
+            for fmt in video_formats:
+                format_id = fmt['format_id']
+                ydl_opts = ydl_opts_base.copy()
+                ydl_opts['format'] = format_id
+                ydl_opts['max_filesize'] = 50 * 1024 * 1024  # 50MB max filesize
+                ydl_opts['quiet'] = True
+                ydl_opts['no_warnings'] = True
+                ydl_opts['nocheckcertificate'] = True
+                ydl_opts['merge_output_format'] = 'mp4'
+
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl2:
+                        info_downloaded = ydl2.extract_info(url, download=True)
+                        file_path = ydl2.prepare_filename(info_downloaded)
+                        # Ensure extension is mp4
+                        if not file_path.lower().endswith('.mp4'):
+                            file_path = os.path.splitext(file_path)[0] + '.mp4'
+                        if os.path.exists(file_path):
+                            size = os.path.getsize(file_path)
+                            if size <= 50 * 1024 * 1024:
+                                with open(file_path, 'rb') as f:
+                                    caption = "ڤیدیۆی یوتوب بەسەرکەوتوویی داونلۆدکرا ✅"
+                                    bot.send_video(chat_id, f, caption=caption)
+                                os.remove(file_path)
+                                bot.delete_message(chat_id, msg_id)
+                                return
+                            else:
+                                # Remove large file and try next lower quality
+                                os.remove(file_path)
+                        else:
+                            bot.edit_message_text("❌ ڤیدیۆکە نەدۆزرایەوە دوای دابەزاندن", chat_id, msg_id)
+                            return
+                except yt_dlp.utils.DownloadError as e:
+                    # If file too large error, try next format
+                    if "File is larger than max-filesize" in str(e):
+                        continue
+                    else:
+                        bot.edit_message_text(f"❌ هەڵە لە دابەزاندن:\n{str(e)}", chat_id, msg_id)
+                        return
+            # If loop ends without success
+            bot.edit_message_text("❌ هیچ ڤیدیۆیەک نەدۆزرایەوە کە قەبارەیەکی خوارتر لە 50MB هەبێت", chat_id, msg_id)
     except Exception as e:
         bot.edit_message_text(f"❌ هەڵەی نەناسراو:\n{str(e)}", chat_id, msg_id)
 
@@ -167,12 +198,27 @@ def handle_tiktok(url, chat_id, msg_id):
         response = requests.get(api_url, timeout=30).json()
         if not response.get('data'):
             raise Exception("هیچ داتایەک نەدۆزرایەوە")
+
+        # Try to get non-watermarked video URL first if available
         video_url = response['data'].get('play') or response['data'].get('wmplay')
         if not video_url:
             raise Exception("نەتوانرا لینکی ڤیدیۆ بدۆزرێتەوە")
+
+        # HEAD request to get content length before downloading
+        head_resp = requests.head(video_url, timeout=10)
+        content_length = head_resp.headers.get('Content-Length')
+        if content_length is not None:
+            size = int(content_length)
+            if size > 50 * 1024 * 1024:
+                # Try to find lower quality video if available (tikwm API does not provide multiple qualities)
+                # So notify user about size limit
+                raise Exception("قەبارەی ڤیدیۆکە لە 50MB زیاترە")
+
+        # Download video content
         video_data = requests.get(video_url, timeout=60).content
         if len(video_data) > 50 * 1024 * 1024:
             raise Exception("قەبارەی ڤیدیۆکە لە 50MB زیاترە")
+
         caption = ("ڤیدیۆی تیکتۆک بەسەرکەوتوویی داونلۆدکرا ✅\n\n"
                    "🚀 سەردانی @KurdishBots بکە بۆ بەدەستهێنانی بۆتی زیاتر و سوودبەخش")
         bot.send_video(chat_id, video_data, caption=caption)
