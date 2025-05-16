@@ -1,51 +1,56 @@
 import telebot
-import youtube_dl
+import yt_dlp as youtube_dl
 import os
 
-# === Your Bot Token ===
+# === Your Telegram Bot Token ===
 BOT_TOKEN = '7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI'
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# === Ensure 'downloads/' folder exists ===
-DOWNLOAD_DIR = "downloads"
-if not os.path.exists(DOWNLOAD_DIR):
-    os.makedirs(DOWNLOAD_DIR)
+# === Make sure 'downloads/' exists ===
+DOWNLOAD_DIR = 'downloads'
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 # === /start command ===
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "👋 Welcome!\nSend me a YouTube link and I will download the video for you.")
+    bot.reply_to(message, "👋 Welcome to the YouTube Downloader Bot!\n\n📥 Send me a YouTube link to download the video.")
 
 # === Handle YouTube links ===
-@bot.message_handler(func=lambda message: 'youtube.com/watch' in message.text or 'youtu.be/' in message.text)
-def download_video(message):
+@bot.message_handler(func=lambda message: 'youtube.com' in message.text or 'youtu.be/' in message.text)
+def download_youtube_video(message):
     url = message.text
-    bot.reply_to(message, "📥 Downloading... Please wait.")
+    bot.send_message(message.chat.id, "🔄 Processing your video, please wait...")
 
     try:
         ydl_opts = {
-            'outtmpl': f'{DOWNLOAD_DIR}/%(title)s.%(ext)s',
             'format': 'bestvideo+bestaudio/best',
+            'outtmpl': f'{DOWNLOAD_DIR}/%(title)s.%(ext)s',
             'noplaylist': True,
+            'quiet': True,
+            'merge_output_format': 'mp4',
         }
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
+            file_path = ydl.prepare_filename(info)
 
-        # Send the video file
-        with open(filename, 'rb') as video:
-            bot.send_video(message.chat.id, video)
+        # Decide how to send based on file size
+        file_size = os.path.getsize(file_path)
+        with open(file_path, 'rb') as video_file:
+            if file_size <= 50 * 1024 * 1024:  # 50MB limit for send_video
+                bot.send_video(message.chat.id, video_file, caption="✅ Video downloaded successfully!")
+            else:
+                bot.send_document(message.chat.id, video_file, caption="📦 File is large, sent as a document.")
 
-        os.remove(filename)  # Clean up after sending
+        os.remove(file_path)
 
     except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}")
+        bot.send_message(message.chat.id, f"❌ Error:\n{str(e)}")
 
-# === Fallback handler ===
+# === Catch-all for non-links ===
 @bot.message_handler(func=lambda message: True)
-def handle_other(message):
-    bot.reply_to(message, "❗ Please send a valid YouTube link.")
+def handle_non_links(message):
+    bot.reply_to(message, "❗ Please send a valid YouTube video link.")
 
-# === Run bot ===
+# === Run the bot ===
 bot.polling()
