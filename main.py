@@ -58,21 +58,20 @@ def send_welcome(message):
         types.InlineKeyboardButton("🔗 کەناڵی سەرەکی", url="https://t.me/KurdishBots"),
         types.InlineKeyboardButton("📥 داگرتنی ڤیدیۆ", callback_data="download_prompt"),
         types.InlineKeyboardButton("🎥 چۆنیەتی بەکارهێنان", callback_data="how_to_use"),
-        types.InlineKeyboardButton("🧑‍💼 پەیوەندی پێوە بکە", url="https://t.me/MasterLordBoss")
+        types.InlineKeyboardButton("🧑‍💼 پەیوەندیم پێوە بکە", url="https://t.me/MasterLordBoss")
     )
     bot.send_message(
         message.chat.id,
-        "👋 بەخێربێیت بۆ بۆتی داگرتنی ڤیدیۆ!\n\n"
-        "بۆ بەکارهێنانی بۆتەکە تکایە لە دوگمەکان خوارەوە یارمەتیت بگرە:\n"
-        "🔽 داگرتن\n🎥 ڤیدیۆی ڕێنمایی\n🧑‍💼 پەیوەندی\n\n"
-        "بۆ داگرتنی ڤیدیۆ، بە سادەیی لینکێکی یوتیوب یان تیکتۆک بنێرە.",
+        "👋 بەخێربێیت بۆ بۆتی داونلۆددکردنی ڤیدیۆی (یوتوب و تیکتۆک)\n\n"
+        "سەردانی کەناڵەکەمان بکە بۆ ئاگاداربوون لە نوێترین گۆڕانکاریەکان لە بۆتەکە و سوودمەندبوون لە چەندین بۆتی  🏆 هاوشێوە\n\n"
+        "https://t.me/KurdishBots",
         reply_markup=markup
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == 'how_to_use')
 def how_to_use(call):
     if not check_membership(call.from_user.id):
-        bot.send_message(call.message.chat.id, "👥 تکایە سەرەتا بە ژوورەوەی کەناڵەکە بکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
+        bot.send_message(call.message.chat.id, "👥 تکایە سەرەتا جۆینی کەناڵەکەمان بکە بۆ بەکارهێنانی بۆتەکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     video_url = "https://media-hosting.imagekit.io/a031c091769643da/IMG_4141%20(1).MP4?Expires=1841246907&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=z6BkaPkTwhTwjl-QZw6VNroAuS7zbxxIboZclk8Ww1GTQpxK~M-03JNLXt5Ml6pReIyvxJGGKBGX60~uGI2S5Tev3QtMHz3hIa7iPTQIrfv1p32oTvwyycnFfvecpFAofB-4qGSvZ5YsynhnrpUJT-fH25ROpkGnj9xMo87KWlrd6E1G9sWP5PNwpnLkRMkoh2uZLyWA935JPLX0bJMRGdovqmrORlp7XvxoOom2vHg2zydq1JSDVDlbxGFsM3guN8GWSPSM-pfOymZfJY-r~ajDT8sD~fjDCUwji~zW~LCqLTYdwHhglJXmtOStjsmeXqn4JOU2Q85LtIM~LHRTgA__"
@@ -84,7 +83,7 @@ def download_instruction(call):
         bot.send_message(call.message.chat.id, "👥 تکایە سەرەتا بە ژوورەوەی کەناڵەکە بکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
-    bot.send_message(call.message.chat.id, "📥 تکایە لینکێکی ڤیدیۆی YouTube یان TikTok بنێرە بۆ داگرتن.")
+    bot.send_message(call.message.chat.id, "☢ تکایە لینکی ڤیدیۆکەت بنێرە بە ڕاست و دروستی تاکو بۆت داونلۆدبکەم")
 
 @bot.message_handler(commands=['stats'])
 def send_stats(message):
@@ -109,15 +108,15 @@ def export_users(message):
 @bot.message_handler(func=lambda message: True)
 def handle_links(message):
     if not check_membership(message.from_user.id):
-        bot.send_message(message.chat.id, "👥 تکایە سەرەتا بە ژوورەوەی کەناڵەکە بکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
+        bot.send_message(message.chat.id, "👥 تکایە سەرەتا جۆینی کەناڵەکەمان بکە بۆ بەکارهێنانی بۆتەکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     url = message.text.strip()
     if not ("youtube.com" in url or "youtu.be" in url or "tiktok.com" in url):
-        bot.reply_to(message, "❌ تکایە بەستەرێکی ڤیدیۆ بنێرە (YouTube/TikTok).")
+        bot.reply_to(message, "❌ تکایە دڵنیابەرەوە لە ڕاست و دروستی لینکەکە پاشان لینکەکە بنێرە")
         return
 
-    msg = bot.reply_to(message, "⏳ داگرتن دەستپێ دەکات ... تکایە چاوەڕێ بکە.")
+    msg = bot.reply_to(message, "⏳ تکایە چاوەڕوانبە تا بیدیۆکەت بۆ داونلۆدبکەم")
 
     try:
         output_dir = "downloads"
@@ -142,7 +141,7 @@ def handle_links(message):
             return
 
         with open(video_path, 'rb') as video:
-            bot.send_video(message.chat.id, video, caption="✅ ڤیدیۆکەت بە سەرکەوتوویی داگرت.")
+            bot.send_video(message.chat.id, video, caption="ڤیدیۆکەت بەسەرکەوتوویی داونلۆدکرا ✅")
 
         increment_download(message.from_user.id)
         bot.delete_message(message.chat.id, msg.message_id)
@@ -150,7 +149,7 @@ def handle_links(message):
 
     except Exception as e:
         bot.edit_message_text(
-            f"⚠️ هەڵەیەک ڕوویدا. تکایە دووبارە هەوڵ بدە.\n\n`{str(e)}`",
+            f"⚠️ کێشەیەکی تەکنیکی هەیە، تکایە خاوەنی بۆت ئاگاداربکەوە\n\n`{str(e)}`",
             message.chat.id,
             msg.message_id,
             parse_mode="Markdown"
