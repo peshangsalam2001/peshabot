@@ -1,94 +1,74 @@
-import os
 import telebot
-import subprocess
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import validators
-from telebot import types
+import yt_dlp
+import os
+import uuid
 
-bot = telebot.TeleBot("7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI")
+BOT_TOKEN = '7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI'
+bot = telebot.TeleBot(BOT_TOKEN)
 
-# Replace this with your actual channel username (without @)
-MAIN_CHANNEL = "YourMainChannel"
+# Helper function to check video size
+def get_file_size(path):
+    return os.path.getsize(path) / (1024 * 1024)  # in MB
 
+# Start command handler
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    markup = types.InlineKeyboardMarkup()
-    markup.row_width = 1
+def start_message(message):
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton("کەناڵی سەرەکی", url="https://t.me/KurdishBots"),
+        InlineKeyboardButton("خاوەن بۆت", url="https://t.me/MasterLordBoss")
+    )
     markup.add(
-        types.InlineKeyboardButton("Join Our Channel", url=f"https://t.me/{MAIN_CHANNEL}"),
-        types.InlineKeyboardButton("Send Link to Download", switch_inline_query_current_chat=""),
-        types.InlineKeyboardButton("How to Use the Bot", callback_data="how_to_use"),
-        types.InlineKeyboardButton("Contact Creator", url="https://t.me/YourUsername")
+        InlineKeyboardButton("چۆنیەتی بەکارهێنانی بۆتەکە", callback_data="how_to_use")
     )
-    bot.send_message(message.chat.id,
-                     "Welcome! I can help you download videos from YouTube, Shorts, and TikTok.\nJust send me the link.",
-                     reply_markup=markup)
-
-@bot.callback_query_handler(func=lambda call: True)
-def callback_query(call):
-    if call.data == "how_to_use":
-        bot.send_message(call.message.chat.id,
-                         "To use this bot:\n1. Copy a YouTube, Shorts, or TikTok link\n2. Paste it here\n3. I’ll download the video and send it to you!")
-
-def is_valid_video_link(text):
-    return (
-        validators.url(text) and
-        ("youtube.com" in text or "youtu.be" in text or "tiktok.com" in text)
+    bot.send_message(
+        message.chat.id,
+        "بۆ داونلۆدی ڤیدیۆ، لینکی یوتیوب یان تیکتۆک بنێرە.",
+        reply_markup=markup
     )
 
+# Callback handler for "How to use"
+@bot.callback_query_handler(func=lambda call: call.data == "how_to_use")
+def send_usage_video(call):
+    video_url = "https://media-hosting.imagekit.io/a031c091769643da/IMG_4141%20(1).MP4?Expires=1841246907&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=z6BkaPkTwhTwjl-QZw6VNroAuS7zbxxIboZclk8Ww1GTQpxK~M-03JNLXt5Ml6pReIyvxJGGKBGX60~uGI2S5Tev3QtMHz3hIa7iPTQIrfv1p32oTvwyycnFfvecpFAofB-4qGSvZ5YsynhnrpUJT-fH25ROpkGnj9xMo87KWlrd6E1G9sWP5PNwpnLkRMkoh2uZLyWA935JPLX0bJMRGdovqmrORlp7XvxoOom2vHg2zydq1JSDVDlbxGFsM3guN8GWSPSM-pfOymZfJY-r~ajDT8sD~fjDCUwji~zW~LCqLTYdwHhglJXmtOStjsmeXqn4JOU2Q85LtIM~LHRTgA__"
+    bot.send_video(call.message.chat.id, video=video_url, caption="ئەم ڤیدیۆیە چۆنیەتی بەکارهێنەنی بۆتەکە ڕووندەکاتەوە")
+
+# Video download handler
 @bot.message_handler(func=lambda message: True)
-def handle_links(message):
-    text = message.text.strip()
+def handle_video_link(message):
+    url = message.text.strip()
+    if not validators.url(url):
+        bot.reply_to(message, "تکایە بەستەرێکی دروست بنێرە!")
+        return
 
-    if is_valid_video_link(text):
-        bot.send_chat_action(message.chat.id, 'upload_video')
+    msg = bot.reply_to(message, "داونلۆدکردن دەست پێکرد... تکایە چاوەڕێ بکە")
 
-        video_url = text
-        video_file_path = "video.mp4"
+    ydl_opts = {
+        'outtmpl': f'{uuid.uuid4()}.%(ext)s',
+        'format': 'best[ext=mp4]/best',
+        'quiet': True,
+    }
 
-        yt_dlp_command = [
-            "yt-dlp",
-            "-o", video_file_path,
-            "-f", "mp4",
-            "--no-playlist",
-            video_url
-        ]
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            file_path = ydl.prepare_filename(info)
 
-        try:
-            result = subprocess.run(
-                yt_dlp_command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
-            )
+        size_mb = get_file_size(file_path)
+        if size_mb > 50:
+            bot.send_message(message.chat.id, "ببورە! ڤیدیۆکە گەورەترە لە 50MB، ناتوانرێت نێردرێت.")
+            os.remove(file_path)
+            return
 
-            yt_output = result.stdout.decode('utf-8') + '\n' + result.stderr.decode('utf-8')
+        with open(file_path, 'rb') as video_file:
+            bot.send_video(message.chat.id, video=video_file, caption="ڤیدیۆکەت بەسەرکەوتوویی داونلۆدکرا ✅")
 
-            if os.path.exists(video_file_path):
-                # Check video size
-                if os.path.getsize(video_file_path) > 50 * 1024 * 1024:
-                    # Recompress to lower quality
-                    compressed_path = "compressed_video.mp4"
-                    ffmpeg_command = [
-                        "ffmpeg", "-i", video_file_path,
-                        "-vf", "scale=640:-2", "-preset", "fast",
-                        "-crf", "28", compressed_path
-                    ]
-                    subprocess.run(ffmpeg_command)
-                    os.remove(video_file_path)
-                    video_file_path = compressed_path
+        os.remove(file_path)
 
-                bot.send_video(message.chat.id, open(video_file_path, 'rb'), caption="Here is your video!")
-                os.remove(video_file_path)
-            else:
-                bot.send_message(message.chat.id, "Download failed. See the details below:")
+    except Exception as e:
+        bot.send_message(message.chat.id, "هەڵەیەک ڕووی دا! تکایە دواتر هەوڵ بدە.")
+        print(f"Download error: {e}")
 
-            # Always show yt-dlp output (success or fail)
-            for i in range(0, len(yt_output), 4000):
-                bot.send_message(message.chat.id, yt_output[i:i+4000])
-
-        except Exception as e:
-            bot.send_message(message.chat.id, f"An error occurred:\n{str(e)}")
-
-    else:
-        bot.send_message(message.chat.id, "❌ Please send a valid YouTube or TikTok video link.")
-
-bot.infinity_polling()
+bot.polling()
