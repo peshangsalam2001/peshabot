@@ -1,74 +1,85 @@
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
-import validators
-import yt_dlp
+from telebot import types
+import requests
 import os
-import uuid
+import subprocess
+import traceback
 
-BOT_TOKEN = '7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI'
-bot = telebot.TeleBot(BOT_TOKEN)
+API_TOKEN = '7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI'
+bot = telebot.TeleBot(API_TOKEN)
 
-# Helper function to check video size
-def get_file_size(path):
-    return os.path.getsize(path) / (1024 * 1024)  # in MB
+# Reset webhook on startup
+requests.get(f"https://api.telegram.org/bot{API_TOKEN}/deleteWebhook")
 
-# Start command handler
+# Start command
 @bot.message_handler(commands=['start'])
-def start_message(message):
-    markup = InlineKeyboardMarkup()
-    markup.row(
-        InlineKeyboardButton("کەناڵی سەرەکی", url="https://t.me/KurdishBots"),
-        InlineKeyboardButton("خاوەن بۆت", url="https://t.me/MasterLordBoss")
-    )
+def send_welcome(message):
+    markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        InlineKeyboardButton("چۆنیەتی بەکارهێنانی بۆتەکە", callback_data="how_to_use")
+        types.InlineKeyboardButton("کەناڵی سەرەکی", url="https://t.me/KurdishBots"),
+        types.InlineKeyboardButton("چۆنیەتی بەکارهێنانی بۆتەکە", callback_data='how_to_use'),
+        types.InlineKeyboardButton("خاوەن بۆت", url="https://t.me/MasterLordBoss")
     )
     bot.send_message(
         message.chat.id,
-        "بۆ داونلۆدی ڤیدیۆ، لینکی یوتیوب یان تیکتۆک بنێرە.",
+        "بەخێربێی بۆ بۆتەکە!\n\nتکایە بەستەرێکی ڤیدیۆی یوتوب یان تیکتۆک بنێرە بۆ داگرتن.",
         reply_markup=markup
     )
 
-# Callback handler for "How to use"
-@bot.callback_query_handler(func=lambda call: call.data == "how_to_use")
-def send_usage_video(call):
+# Tutorial video
+@bot.callback_query_handler(func=lambda call: call.data == 'how_to_use')
+def how_to_use(call):
     video_url = "https://media-hosting.imagekit.io/a031c091769643da/IMG_4141%20(1).MP4?Expires=1841246907&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=z6BkaPkTwhTwjl-QZw6VNroAuS7zbxxIboZclk8Ww1GTQpxK~M-03JNLXt5Ml6pReIyvxJGGKBGX60~uGI2S5Tev3QtMHz3hIa7iPTQIrfv1p32oTvwyycnFfvecpFAofB-4qGSvZ5YsynhnrpUJT-fH25ROpkGnj9xMo87KWlrd6E1G9sWP5PNwpnLkRMkoh2uZLyWA935JPLX0bJMRGdovqmrORlp7XvxoOom2vHg2zydq1JSDVDlbxGFsM3guN8GWSPSM-pfOymZfJY-r~ajDT8sD~fjDCUwji~zW~LCqLTYdwHhglJXmtOStjsmeXqn4JOU2Q85LtIM~LHRTgA__"
     bot.send_video(call.message.chat.id, video=video_url, caption="ئەم ڤیدیۆیە چۆنیەتی بەکارهێنەنی بۆتەکە ڕووندەکاتەوە")
 
-# Video download handler
+# Handle video links
 @bot.message_handler(func=lambda message: True)
-def handle_video_link(message):
+def handle_links(message):
     url = message.text.strip()
-    if not validators.url(url):
-        bot.reply_to(message, "تکایە بەستەرێکی دروست بنێرە!")
+    if not ("youtube.com" in url or "youtu.be" in url or "tiktok.com" in url):
+        bot.reply_to(message, "تکایە بەستەرێکی ڤیدیۆ بنێرە (YouTube/TikTok).")
         return
 
-    msg = bot.reply_to(message, "داونلۆدکردن دەست پێکرد... تکایە چاوەڕێ بکە")
-
-    ydl_opts = {
-        'outtmpl': f'{uuid.uuid4()}.%(ext)s',
-        'format': 'best[ext=mp4]/best',
-        'quiet': True,
-    }
+    msg = bot.reply_to(message, "داگرتن لە ڕێگەی یوتیوب دەست پێکرد ... تکایە چاوەڕێ بکە")
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            file_path = ydl.prepare_filename(info)
+        output_dir = "downloads"
+        os.makedirs(output_dir, exist_ok=True)
 
-        size_mb = get_file_size(file_path)
-        if size_mb > 50:
-            bot.send_message(message.chat.id, "ببورە! ڤیدیۆکە گەورەترە لە 50MB، ناتوانرێت نێردرێت.")
-            os.remove(file_path)
+        cmd = [
+            "yt-dlp",
+            "-f", "mp4",
+            "--output", f"{output_dir}/%(title).40s.%(ext)s",
+            url
+        ]
+        subprocess.run(cmd, check=True)
+
+        files = os.listdir(output_dir)
+        files.sort(key=lambda x: os.path.getctime(os.path.join(output_dir, x)), reverse=True)
+
+        video_path = os.path.join(output_dir, files[0])
+        file_size = os.path.getsize(video_path)
+
+        if file_size > 50 * 1024 * 1024:
+            bot.edit_message_text("قەبارەی ڤیدیۆکە زۆر گەورەیە، تکایە لینکێکی تر بنێرە.", message.chat.id, msg.message_id)
+            os.remove(video_path)
             return
 
-        with open(file_path, 'rb') as video_file:
-            bot.send_video(message.chat.id, video=video_file, caption="ڤیدیۆکەت بەسەرکەوتوویی داونلۆدکرا ✅")
+        with open(video_path, 'rb') as video:
+            bot.send_video(message.chat.id, video, caption="ڤیدیۆکەت بەسەرکەوتوویی داونلۆدکرا ✅")
 
-        os.remove(file_path)
+        bot.delete_message(message.chat.id, msg.message_id)
+        os.remove(video_path)
 
     except Exception as e:
-        bot.send_message(message.chat.id, "هەڵەیەک ڕووی دا! تکایە دواتر هەوڵ بدە.")
-        print(f"Download error: {e}")
+        error_details = traceback.format_exc()
+        bot.edit_message_text(
+            f"هەڵەیەک ڕوویدا لە کاتی داگرتنەوە، تکایە دووبارە هەوڵ بدە.\n\n**هەڵەکە:**\n`{str(e)}`",
+            message.chat.id,
+            msg.message_id,
+            parse_mode="Markdown"
+        )
 
-bot.polling()
+# Start bot polling
+print("Bot is running...")
+bot.infinity_polling()
