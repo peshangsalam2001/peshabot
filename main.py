@@ -10,7 +10,7 @@ API_TOKEN = '7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI'
 bot = telebot.TeleBot(API_TOKEN)
 
 CHANNEL_USERNAME = "KurdishBots"
-OWNER_ID = 5140051011  # گۆڕی بۆ ID خاونی بۆت
+OWNER_ID = 1908245207  # گۆڕی بۆ ID خاونی بۆت
 
 DATA_FILE = "user_data.json"
 
