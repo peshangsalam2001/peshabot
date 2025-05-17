@@ -4,7 +4,7 @@ import subprocess
 import validators
 from telebot import types
 
-bot = telebot.TeleBot("YOUR_BOT_TOKEN_HERE")
+bot = telebot.TeleBot("7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI")
 
 # Replace this with your actual channel username (without @)
 MAIN_CHANNEL = "YourMainChannel"
