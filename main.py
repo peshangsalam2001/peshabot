@@ -48,7 +48,7 @@ def increment_download(user_id):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if not check_membership(message.from_user.id):
-        bot.send_message(message.chat.id, "👥 تکایە سەرەتا بە ژوورەوەی کەناڵەکە بکە و دووبارە هەوڵ بدە:\n\n👉 https://t.me/" + CHANNEL_USERNAME)
+        bot.send_message(message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت بۆ ئەوەی بتوانیت بۆتەکە بەکاربهێنی \n\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     add_user(message.from_user.id)
@@ -62,8 +62,8 @@ def send_welcome(message):
     )
     bot.send_message(
         message.chat.id,
-        "👋 بەخێربێیت بۆ بۆتی داونلۆددکردنی ڤیدیۆی (یوتوب و تیکتۆک)\n\n"
-        "سەردانی کەناڵەکەمان بکە بۆ ئاگاداربوون لە نوێترین گۆڕانکاریەکان لە بۆتەکە و سوودمەندبوون لە چەندین بۆتی  🏆 هاوشێوە\n\n"
+        "👋 بەخێربێیت بۆ بۆتی داونلۆدکردنی ڤیدیۆی (یوتوب و تیکتۆک)\n\n"
+        "🏆 سەردانی کەناڵەکەمان بکە بۆ ئاگاداربون لە نوێترین گۆڕانکاریەکان لە بۆتەکە و سوودمەندبوون لە چەندین بۆتی هاوشێوە\n\n"
         "https://t.me/KurdishBots",
         reply_markup=markup
     )
@@ -80,7 +80,7 @@ def how_to_use(call):
 @bot.callback_query_handler(func=lambda call: call.data == 'download_prompt')
 def download_instruction(call):
     if not check_membership(call.from_user.id):
-        bot.send_message(call.message.chat.id, "👥 تکایە سەرەتا بە ژوورەوەی کەناڵەکە بکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
+        bot.send_message(call.message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت بۆ ئەوەی بتوانیت بۆتەکە بەکاربهێنی \n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     bot.send_message(call.message.chat.id, "☢ تکایە لینکی ڤیدیۆکەت بنێرە بە ڕاست و دروستی تاکو بۆت داونلۆدبکەم")
@@ -108,7 +108,7 @@ def export_users(message):
 @bot.message_handler(func=lambda message: True)
 def handle_links(message):
     if not check_membership(message.from_user.id):
-        bot.send_message(message.chat.id, "👥 تکایە سەرەتا جۆینی کەناڵەکەمان بکە بۆ بەکارهێنانی بۆتەکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
+        bot.send_message(message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت بۆ ئەوەی بتوانیت بۆتەکە بەکاربهێنی \n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     url = message.text.strip()
