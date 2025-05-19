@@ -10,7 +10,7 @@ API_TOKEN = '7595180485:AAE5KKHtm3YHH1lo7cZqt4IDSIMsq8OyasI'
 bot = telebot.TeleBot(API_TOKEN)
 
 CHANNEL_USERNAME = "KurdishBots"
-OWNER_ID = 1908245207  # گۆڕی بۆ ID خاوەن بۆت
+OWNER_ID = 1908245207
 
 DATA_FILE = "user_data.json"
 
@@ -71,16 +71,16 @@ def send_welcome(message):
 @bot.callback_query_handler(func=lambda call: call.data == 'how_to_use')
 def how_to_use(call):
     if not check_membership(call.from_user.id):
-        bot.send_message(call.message.chat.id, "👥 تکایە سەرەتا جۆینی کەناڵەکەمان بکە بۆ بەکارهێنانی بۆتەکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
+        bot.send_message(call.message.chat.id, "👥 تکایە سەرەتا جۆینی کەناڵەکەمان بکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
-    video_url = "https://media-hosting.imagekit.io/a031c091769643da/IMG_4141%20(1).MP4?Expires=1841246907&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=z6BkaPkTwhTwjl-QZw6VNroAuS7zbxxIboZclk8Ww1GTQpxK~M-03JNLXt5Ml6pReIyvxJGGKBGX60~uGI2S5Tev3QtMHz3hIa7iPTQIrfv1p32oTvwyycnFfvecpFAofB-4qGSvZ5YsynhnrpUJT-fH25ROpkGnj9xMo87KWlrd6E1G9sWP5PNwpnLkRMkoh2uZLyWA935JPLX0bJMRGdovqmrORlp7XvxoOom2vHg2zydq1JSDVDlbxGFsM3guN8GWSPSM-pfOymZfJY-r~ajDT8sD~fjDCUwji~zW~LCqLTYdwHhglJXmtOStjsmeXqn4JOU2Q85LtIM~LHRTgA__"
+    video_url = "https://media-hosting.imagekit.io/a031c091769643da/IMG_4141%20(1).MP4"
     bot.send_video(call.message.chat.id, video=video_url, caption="🎥 ڤیدیۆی ڕێنمایی بۆ چۆنیەتی بەکارهێنانی بۆتەکە")
 
 @bot.callback_query_handler(func=lambda call: call.data == 'download_prompt')
 def download_instruction(call):
     if not check_membership(call.from_user.id):
-        bot.send_message(call.message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت بۆ ئەوەی بتوانیت بۆتەکە بەکاربهێنی \n👉 https://t.me/" + CHANNEL_USERNAME)
+        bot.send_message(call.message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت \n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     bot.send_message(call.message.chat.id, "☢ تکایە لینکی ڤیدیۆکەت بنێرە بە ڕاست و دروستی تاکو بۆت داونلۆدبکەم")
@@ -108,12 +108,12 @@ def export_users(message):
 @bot.message_handler(func=lambda message: True)
 def handle_links(message):
     if not check_membership(message.from_user.id):
-        bot.send_message(message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت بۆ ئەوەی بتوانیت بۆتەکە بەکاربهێنی \n👉 https://t.me/" + CHANNEL_USERNAME)
+        bot.send_message(message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت \n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     url = message.text.strip()
     if not ("youtube.com" in url or "youtu.be" in url or "tiktok.com" in url):
-        bot.reply_to(message, "❌ تکایە دڵنیابەرەوە لە ڕاست و دروستی لینکەکە پاشان لینکەکە بنێرە")
+        bot.reply_to(message, "❌ تکایە دڵنیابەرەوە لە ڕاستی لینکەکە، پاشان لینکەکە بنێرە")
         return
 
     msg = bot.reply_to(message, "⏳ تکایە چاوەڕوانبە تا بیدیۆکەت بۆ داونلۆدبکەم")
@@ -124,11 +124,14 @@ def handle_links(message):
 
         cmd = [
             "yt-dlp",
-            "-f", "mp4",
+            "-f", "best[ext=mp4]/best",
             "--output", f"{output_dir}/%(title).40s.%(ext)s",
             url
         ]
-        subprocess.run(cmd, check=True)
+
+        result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        if result.returncode != 0:
+            raise Exception(f"yt-dlp failed:\n{result.stderr}")
 
         files = os.listdir(output_dir)
         files.sort(key=lambda x: os.path.getctime(os.path.join(output_dir, x)), reverse=True)
@@ -141,7 +144,7 @@ def handle_links(message):
             return
 
         with open(video_path, 'rb') as video:
-            bot.send_video(message.chat.id, video, caption="ڤیدیۆکەت بەسەرکەوتوویی داونلۆدکرا ✅")
+            bot.send_video(message.chat.id, video, caption="ڤیدیۆکەت بەسەرکەوتوویی داگرت ✅")
 
         increment_download(message.from_user.id)
         bot.delete_message(message.chat.id, msg.message_id)
@@ -149,7 +152,7 @@ def handle_links(message):
 
     except Exception as e:
         bot.edit_message_text(
-            f"⚠️ کێشەیەکی تەکنیکی هەیە، تکایە خاوەنی بۆت ئاگاداربکەوە\n\n`{str(e)}`",
+            f"⚠️ کێشەیەک ڕوویدا:\n\n```{str(e)}```",
             message.chat.id,
             msg.message_id,
             parse_mode="Markdown"
