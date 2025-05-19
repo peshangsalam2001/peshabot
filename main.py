@@ -12,7 +12,7 @@ bot = telebot.TeleBot(API_TOKEN)
 CHANNEL_USERNAME = "KurdishBots"
 OWNER_ID = 1908245207
 DATA_FILE = "user_data.json"
-COOKIES_FILE = "cookies.txt"  # Make sure this file exists
+COOKIES_FILE = "cookies.txt"
 
 requests.get(f"https://api.telegram.org/bot{API_TOKEN}/deleteWebhook")
 
@@ -48,38 +48,38 @@ def increment_download(user_id):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if not check_membership(message.from_user.id):
-        bot.send_message(message.chat.id, f"👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت:\n👉 https://t.me/{CHANNEL_USERNAME}")
+        bot.send_message(message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت:\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     add_user(message.from_user.id)
-
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("🔗 کەناڵی سەرەکی", url=f"https://t.me/{CHANNEL_USERNAME}"),
+        types.InlineKeyboardButton("🔗 کەناڵی سەرەکی", url="https://t.me/KurdishBots"),
         types.InlineKeyboardButton("📥 داگرتنی ڤیدیۆ", callback_data="download_prompt"),
         types.InlineKeyboardButton("🎥 چۆنیەتی بەکارهێنان", callback_data="how_to_use"),
         types.InlineKeyboardButton("🧑‍💼 پەیوەندیم پێوە بکە", url="https://t.me/MasterLordBoss")
     )
     bot.send_message(
         message.chat.id,
-        "👋 بەخێربێیت بۆ بۆتی داونلۆدکردنی ڤیدیۆ (یوتیوب و تیکتۆک)\n\n"
-        "🏆 سەردانی کەناڵەکەمان بکە بۆ نوێکاریەکان:\nhttps://t.me/KurdishBots",
+        "👋 بەخێربێیت بۆ بۆتی داونلۆدکردنی ڤیدیۆی یوتیوب و تیکتۆک\n\n"
+        "🏆 سەردانی کەناڵەکەمان بکە بۆ زانیاری نوێ\n\n"
+        "https://t.me/KurdishBots",
         reply_markup=markup
     )
 
 @bot.callback_query_handler(func=lambda call: call.data == 'how_to_use')
 def how_to_use(call):
     if not check_membership(call.from_user.id):
-        bot.send_message(call.message.chat.id, f"👥 سەرەتا جۆینی کەناڵەکەمان بکە:\n👉 https://t.me/{CHANNEL_USERNAME}")
+        bot.send_message(call.message.chat.id, "👥 تکایە سەرەتا جۆینی کەناڵەکەمان بکە:\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     video_url = "https://media-hosting.imagekit.io/a031c091769643da/IMG_4141%20(1).MP4"
-    bot.send_video(call.message.chat.id, video=video_url, caption="🎥 ڤیدیۆی ڕێنمایی")
+    bot.send_video(call.message.chat.id, video=video_url, caption="🎥 ڤیدیۆی ڕێنمایی بۆ چۆنیەتی بەکارهێنان")
 
 @bot.callback_query_handler(func=lambda call: call.data == 'download_prompt')
 def download_instruction(call):
     if not check_membership(call.from_user.id):
-        bot.send_message(call.message.chat.id, f"👥 پێویستە جۆینی کەناڵەکەمان بکەیت:\n👉 https://t.me/{CHANNEL_USERNAME}")
+        bot.send_message(call.message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت:\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     bot.send_message(call.message.chat.id, "☢ تکایە لینکی ڤیدیۆکەت بنێرە بۆ داگرتن")
@@ -107,21 +107,20 @@ def export_users(message):
 @bot.message_handler(func=lambda message: True)
 def handle_links(message):
     if not check_membership(message.from_user.id):
-        bot.send_message(message.chat.id, f"👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت:\n👉 https://t.me/{CHANNEL_USERNAME}")
+        bot.send_message(message.chat.id, "👥 پێویستە سەرەتا جۆینی کەناڵەکەمان بکەیت:\n👉 https://t.me/" + CHANNEL_USERNAME)
         return
 
     url = message.text.strip()
-    if not any(domain in url for domain in ["youtube.com", "youtu.be", "tiktok.com"]):
-        bot.reply_to(message, "❌ تکایە لینکی ڕاست بنێرە")
+    if not ("youtube.com" in url or "youtu.be" in url or "tiktok.com" in url):
+        bot.reply_to(message, "❌ لینکەکە نادروستە، تکایە دڵنیابەرەوە و دووبارە بنێرە")
         return
 
-    msg = bot.reply_to(message, "⏳ تکایە چاوەڕوانبە...")
+    msg = bot.reply_to(message, "⏳ تکایە چاوەڕوانبە، ڤیدیۆکەت داونلۆد دەکرێت...")
 
     try:
         output_dir = "downloads"
         os.makedirs(output_dir, exist_ok=True)
 
-        # Build the yt-dlp command with cookies
         cmd = [
             "yt-dlp",
             "--cookies", COOKIES_FILE,
@@ -130,7 +129,16 @@ def handle_links(message):
             url
         ]
 
-        subprocess.run(cmd, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            error_msg = result.stderr.strip()
+            bot.edit_message_text(
+                f"⚠️ کێشەیەک ڕوویدا لە کاتی داگرتن:\n\n```\n{error_msg}\n```",
+                message.chat.id,
+                msg.message_id,
+                parse_mode="Markdown"
+            )
+            return
 
         files = os.listdir(output_dir)
         files.sort(key=lambda x: os.path.getctime(os.path.join(output_dir, x)), reverse=True)
@@ -138,28 +146,21 @@ def handle_links(message):
         file_size = os.path.getsize(video_path)
 
         if file_size > 50 * 1024 * 1024:
-            bot.edit_message_text("❗ ڤیدیۆکە زۆر گەورەیە. تکایە لینکێکی تر بنێرە.", message.chat.id, msg.message_id)
+            bot.edit_message_text("❗ قەبارەی ڤیدیۆکە زۆر گەورەیە، تکایە لینکێکی تر بنێرە.", message.chat.id, msg.message_id)
             os.remove(video_path)
             return
 
         with open(video_path, 'rb') as video:
-            bot.send_video(message.chat.id, video, caption="✅ ڤیدیۆکەت داگرت")
-        
+            bot.send_video(message.chat.id, video, caption="✅ ڤیدیۆکەت بەسەرکەوتوویی داگرت")
+
         increment_download(message.from_user.id)
         bot.delete_message(message.chat.id, msg.message_id)
         os.remove(video_path)
 
-    except subprocess.CalledProcessError as e:
-        bot.edit_message_text(
-            f"⚠️ کێشەیەکی هەیە لە داگرتنی ڤیدیۆکە:\n\n`{e}`\n\n"
-            f"تکایە خاوەن بۆت ئاگاداربکە.",
-            message.chat.id,
-            msg.message_id,
-            parse_mode="Markdown"
-        )
     except Exception as e:
+        tb = traceback.format_exc()
         bot.edit_message_text(
-            f"⚠️ کێشەیەکی هەیە:\n\n`{str(e)}`",
+            f"⚠️ هەڵەیەکی ناڕەوا ڕوویدا:\n\n```\n{tb}\n```",
             message.chat.id,
             msg.message_id,
             parse_mode="Markdown"
